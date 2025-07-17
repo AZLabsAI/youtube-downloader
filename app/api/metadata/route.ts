@@ -34,6 +34,8 @@ export async function POST(request: NextRequest) {
       fps: f.fps,
       hasVideo: f.vcodec !== 'none',
       hasAudio: f.acodec !== 'none',
+      vcodec: f.vcodec,
+      acodec: f.acodec,
     }));
 
     return NextResponse.json({
@@ -42,8 +44,12 @@ export async function POST(request: NextRequest) {
       thumbnail: metadata.thumbnail,
       duration: metadata.duration,
       channel: metadata.channel,
+      channelUrl: metadata.channelUrl,
       views: metadata.views,
       uploadDate: metadata.uploadDate,
+      uploadDateFormatted: metadata.uploadDateFormatted,
+      originalUrl: metadata.originalUrl,
+      qualityOptions: metadata.qualityOptions,
       formats: formats
     });
 

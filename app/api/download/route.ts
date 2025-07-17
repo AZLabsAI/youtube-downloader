@@ -3,30 +3,36 @@ import { ytdlpService } from '@/services/ytdlp.service';
 import { createReadStream, statSync } from 'fs';
 import { basename } from 'path';
 
-export async function POST(request: NextRequest) {
+export async function POST(request: Request) {
   try {
-    const { url, formatId } = await request.json();
+    const { url, qualityId } = await request.json();
 
-    if (!url || !formatId) {
+    if (!url || !qualityId) {
       return NextResponse.json(
-        { error: 'URL and format ID are required' },
+        { error: 'URL and quality ID are required' },
         { status: 400 }
       );
     }
 
-    // Download the video
-    const filePath = await ytdlpService.downloadVideo(url, formatId);
+    // Get video metadata first to get the title
+    const metadata = await ytdlpService.getVideoMetadata(url);
+    
+    // Download the video with the specified quality option
+    const filePath = await ytdlpService.downloadVideoWithQuality(url, qualityId, metadata.title);
+    
+    // Schedule cleanup of the temporary file
+    ytdlpService.scheduleFileCleanup(filePath, 30000); // Clean up after 30 seconds
     
     // Get file stats
     const stats = statSync(filePath);
     const fileSize = stats.size;
     const fileName = basename(filePath);
 
-    // Create read stream
-    const stream = createReadStream(filePath);
+    // Create a readable stream
+    const fileStream = createReadStream(filePath);
 
-    // Create response with proper headers
-    const response = new Response(stream as any, {
+    // Create the response with proper headers
+    const response = new NextResponse(fileStream as any, {
       headers: {
         'Content-Type': 'application/octet-stream',
         'Content-Disposition': `attachment; filename="${fileName}"`,
@@ -35,11 +41,10 @@ export async function POST(request: NextRequest) {
     });
 
     return response;
-
-  } catch (error: any) {
-    console.error('Error downloading video:', error);
+  } catch (error) {
+    console.error('Download error:', error);
     return NextResponse.json(
-      { error: error.message || 'Failed to download video' },
+      { error: 'Failed to download video' },
       { status: 500 }
     );
   }

@@ -8,8 +8,11 @@ interface VideoMetadataProps {
   thumbnail: string;
   duration: number;
   channel: string;
+  channelUrl?: string;
   views?: number;
   uploadDate?: string;
+  uploadDateFormatted?: string;
+  originalUrl?: string;
 }
 
 export function VideoMetadata({
@@ -17,8 +20,11 @@ export function VideoMetadata({
   thumbnail,
   duration,
   channel,
+  channelUrl,
   views,
   uploadDate,
+  uploadDateFormatted,
+  originalUrl,
 }: VideoMetadataProps) {
   const formatDuration = (seconds: number): string => {
     const hours = Math.floor(seconds / 3600);
@@ -67,16 +73,43 @@ export function VideoMetadata({
           <div className="space-y-4">
             <div>
               <h3 className="text-xl font-semibold line-clamp-2">{title}</h3>
-              <p className="text-muted-foreground mt-1">{channel}</p>
+              <div className="flex items-center gap-2 mt-1">
+                {channelUrl ? (
+                  <a
+                    href={channelUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-muted-foreground hover:text-primary transition-colors"
+                  >
+                    {channel}
+                  </a>
+                ) : (
+                  <span className="text-muted-foreground">{channel}</span>
+                )}
+                {originalUrl && (
+                  <>
+                    <span className="text-muted-foreground">•</span>
+                    <a
+                      href={originalUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm text-muted-foreground hover:text-primary transition-colors"
+                    >
+                      View Original
+                    </a>
+                  </>
+                )}
+              </div>
             </div>
 
             <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
               {views && <span>{formatViews(views)}</span>}
-              {uploadDate && (
-                <>
-                  {views && <span>•</span>}
-                  <span>{new Date(uploadDate).toLocaleDateString()}</span>
-                </>
+              {(views && (uploadDateFormatted || uploadDate)) && <span>•</span>}
+              {uploadDateFormatted && (
+                <span>{uploadDateFormatted}</span>
+              )}
+              {!uploadDateFormatted && uploadDate && (
+                <span>{new Date(uploadDate).toLocaleDateString()}</span>
               )}
             </div>
           </div>

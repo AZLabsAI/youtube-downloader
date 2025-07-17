@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { URLInput } from '@/components/url-input';
 import { VideoMetadata } from '@/components/video-metadata';
-import { QualitySelector } from '@/components/quality-selector';
+import { QualityOptions } from '@/components/quality-options';
 
 interface VideoInfo {
   id: string;
@@ -11,9 +11,23 @@ interface VideoInfo {
   thumbnail: string;
   duration: number;
   channel: string;
+  channelUrl?: string;
   views?: number;
   uploadDate?: string;
+  uploadDateFormatted?: string;
+  originalUrl?: string;
+  qualityOptions: QualityOption[];
   formats: Format[];
+}
+
+interface QualityOption {
+  id: string;
+  title: string;
+  description: string;
+  quality: string;
+  format: string;
+  estimatedSize?: string;
+  icon: string;
 }
 
 interface Format {
@@ -25,6 +39,8 @@ interface Format {
   fps?: number;
   hasVideo: boolean;
   hasAudio: boolean;
+  vcodec?: string;
+  acodec?: string;
 }
 
 export default function Home() {
@@ -50,7 +66,23 @@ export default function Home() {
       }
 
       const data = await response.json();
-      setVideoInfo(data);
+      const mappedFormats = data.formats.map((format: any) => ({
+        quality: format.quality || 'Unknown',
+        format: format.format || format.ext || 'mp4',
+        filesize: format.filesize,
+        format_id: format.format_id,
+        resolution: format.resolution,
+        fps: format.fps,
+        hasVideo: format.hasVideo || (format.vcodec && format.vcodec !== 'none'),
+        hasAudio: format.hasAudio || (format.acodec && format.acodec !== 'none'),
+        vcodec: format.vcodec || 'none',
+        acodec: format.acodec || 'none',
+      }));
+
+      setVideoInfo({
+        ...data,
+        formats: mappedFormats,
+      });
     } catch (error) {
       console.error('Error fetching video info:', error);
       throw error;
@@ -59,39 +91,36 @@ export default function Home() {
     }
   };
 
-  const handleDownload = async (formatId: string) => {
+  const handleDownload = async (qualityId: string) => {
+    if (!downloadUrl) return;
+    
     try {
       const response = await fetch('/api/download', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ url: downloadUrl, formatId }),
+        body: JSON.stringify({ url: downloadUrl, qualityId }),
       });
 
       if (!response.ok) {
         throw new Error('Download failed');
       }
 
-      // Create blob from response
+      // Create a blob from the response
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       
-      // Extract filename from Content-Disposition header
-      const contentDisposition = response.headers.get('Content-Disposition');
-      const filenameMatch = contentDisposition?.match(/filename="(.+)"/);
-      const filename = filenameMatch ? filenameMatch[1] : 'download.mp4';
-
-      // Create download link
+      // Create a temporary link to trigger download
       const a = document.createElement('a');
       a.href = url;
-      a.download = filename;
+      a.download = ''; // Browser will use the filename from Content-Disposition header
       document.body.appendChild(a);
       a.click();
-      
-      // Cleanup
-      window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
+      
+      // Clean up the blob URL
+      window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error('Download error:', error);
       alert('Failed to download video. Please try again.');
@@ -100,11 +129,58 @@ export default function Home() {
 
   return (
     <main className="container mx-auto px-4 py-8 max-w-4xl">
-      <div className="text-center mb-12">
-        <h1 className="text-4xl font-bold mb-4">YouTube Video Downloader</h1>
-        <p className="text-muted-foreground text-lg">
-          Download videos and audio from YouTube in various formats and qualities
-        </p>
+      {/* Enhanced Hero Section */}
+      <div className="text-center mb-16">
+        <div className="relative">
+          {/* Background gradient */}
+          <div className="absolute inset-0 bg-gradient-to-r from-red-500/10 via-purple-500/10 to-blue-500/10 blur-3xl -z-10" />
+          
+          {/* Main heading */}
+          <h1 className="text-5xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-red-600 via-purple-600 to-blue-600 bg-clip-text text-transparent">
+            YouTube Downloader
+          </h1>
+          
+          {/* Subtitle */}
+          <p className="text-xl md:text-2xl text-muted-foreground mb-8 max-w-2xl mx-auto">
+            Download videos and audio from YouTube in high quality
+          </p>
+          
+          {/* Feature badges */}
+          <div className="flex flex-wrap justify-center gap-4 mb-8">
+            <div className="flex items-center gap-2 bg-green-500/10 text-green-700 px-4 py-2 rounded-full text-sm font-medium">
+              <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+              High Quality Downloads
+            </div>
+            <div className="flex items-center gap-2 bg-blue-500/10 text-blue-700 px-4 py-2 rounded-full text-sm font-medium">
+              <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+              Multiple Formats
+            </div>
+            <div className="flex items-center gap-2 bg-purple-500/10 text-purple-700 px-4 py-2 rounded-full text-sm font-medium">
+              <span className="w-2 h-2 bg-purple-500 rounded-full"></span>
+              Fast & Secure
+            </div>
+          </div>
+          
+          {/* Quick stats */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-2xl mx-auto">
+            <div className="text-center">
+              <div className="text-2xl font-bold text-primary">4K</div>
+              <div className="text-sm text-muted-foreground">Max Resolution</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-primary">MP4</div>
+              <div className="text-sm text-muted-foreground">Video Format</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-primary">MP3</div>
+              <div className="text-sm text-muted-foreground">Audio Format</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-primary">Free</div>
+              <div className="text-sm text-muted-foreground">Always</div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div className="space-y-8">
@@ -122,10 +198,9 @@ export default function Home() {
         ) : videoInfo ? (
           <div className="space-y-6">
             <VideoMetadata {...videoInfo} />
-            <QualitySelector
-              formats={videoInfo.formats}
-              videoUrl={downloadUrl}
-              onDownload={(formatId) => handleDownload(formatId)}
+            <QualityOptions
+              options={videoInfo.qualityOptions}
+              onDownload={handleDownload}
             />
           </div>
         ) : (

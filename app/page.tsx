@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { URLInput } from '@/components/url-input';
 import { VideoMetadata } from '@/components/video-metadata';
 import { QualityOptions } from '@/components/quality-options';
+import { HeroSection } from '@/components/hero-section';
 
 interface VideoInfo {
   id: string;
@@ -46,8 +47,12 @@ interface Format {
 export default function Home() {
   const [videoInfo, setVideoInfo] = useState<VideoInfo | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-
   const [downloadUrl, setDownloadUrl] = useState('');
+  const urlInputRef = useRef<HTMLDivElement>(null);
+
+  const scrollToUrlInput = () => {
+    urlInputRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
 
   const handleURLSubmit = async (url: string) => {
     setDownloadUrl(url);
@@ -128,101 +133,53 @@ export default function Home() {
   };
 
   return (
-    <main className="container mx-auto px-4 py-8 max-w-4xl">
-      {/* Enhanced Hero Section */}
-      <div className="text-center mb-16">
-        <div className="relative">
-          {/* Background gradient */}
-          <div className="absolute inset-0 bg-gradient-to-r from-red-500/10 via-purple-500/10 to-blue-500/10 blur-3xl -z-10" />
-          
-          {/* Main heading */}
-          <h1 className="text-5xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-red-600 via-purple-600 to-blue-600 bg-clip-text text-transparent">
-            YouTube Downloader
-          </h1>
-          
-          {/* Subtitle */}
-          <p className="text-xl md:text-2xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-            Download videos and audio from YouTube in high quality
+    <>
+      {/* Hero Section */}
+      <HeroSection onGetStarted={scrollToUrlInput} />
+
+      {/* Main Content */}
+      <div className="container mx-auto px-4 py-16 max-w-4xl">
+        <div className="space-y-8">
+          {/* URL Input Section */}
+          <div ref={urlInputRef} className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl p-8 shadow-lg border border-white/20">
+            <h2 className="text-2xl font-semibold mb-6 text-center">Enter YouTube URL</h2>
+            <URLInput onSubmit={handleURLSubmit} />
+          </div>
+
+          {/* Video Info or Placeholder */}
+          {isLoading ? (
+            <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm rounded-xl p-8 text-center shadow-lg border border-white/20">
+              <p className="text-muted-foreground">Loading video information...</p>
+            </div>
+          ) : videoInfo ? (
+            <div className="space-y-6">
+              <VideoMetadata {...videoInfo} />
+              <QualityOptions
+                options={videoInfo.qualityOptions}
+                onDownload={handleDownload}
+              />
+            </div>
+          ) : (
+            <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm rounded-xl p-8 text-center shadow-lg border border-white/20">
+              <p className="text-muted-foreground">
+                Enter a YouTube URL to see video information and download options
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Disclaimer */}
+        <div className="mt-12 p-6 bg-white/40 dark:bg-gray-800/40 backdrop-blur-sm rounded-xl text-center border border-white/20">
+          <p className="text-sm text-muted-foreground">
+            <strong>Disclaimer:</strong> This tool is for educational purposes only. 
+            Please respect YouTube's Terms of Service and copyright laws. 
+            Only download videos you have permission to download.
           </p>
-          
-          {/* Feature badges */}
-          <div className="flex flex-wrap justify-center gap-4 mb-8">
-            <div className="flex items-center gap-2 bg-green-500/10 text-green-700 px-4 py-2 rounded-full text-sm font-medium">
-              <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-              High Quality Downloads
-            </div>
-            <div className="flex items-center gap-2 bg-blue-500/10 text-blue-700 px-4 py-2 rounded-full text-sm font-medium">
-              <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-              Multiple Formats
-            </div>
-            <div className="flex items-center gap-2 bg-purple-500/10 text-purple-700 px-4 py-2 rounded-full text-sm font-medium">
-              <span className="w-2 h-2 bg-purple-500 rounded-full"></span>
-              Fast & Secure
-            </div>
-          </div>
-          
-          {/* Quick stats */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-2xl mx-auto">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-primary">4K</div>
-              <div className="text-sm text-muted-foreground">Max Resolution</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-primary">MP4</div>
-              <div className="text-sm text-muted-foreground">Video Format</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-primary">MP3</div>
-              <div className="text-sm text-muted-foreground">Audio Format</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-primary">Free</div>
-              <div className="text-sm text-muted-foreground">Always</div>
-            </div>
-          </div>
+          <p className="text-xs text-muted-foreground mt-2">
+            Downloads are rate-limited to 5 per minute per IP address.
+          </p>
         </div>
       </div>
-
-      <div className="space-y-8">
-        {/* URL Input Section */}
-        <div className="bg-card rounded-lg p-6 shadow-sm border">
-          <h2 className="text-xl font-semibold mb-4">Enter YouTube URL</h2>
-          <URLInput onSubmit={handleURLSubmit} />
-        </div>
-
-        {/* Video Info or Placeholder */}
-        {isLoading ? (
-          <div className="bg-muted/50 rounded-lg p-8 text-center">
-            <p className="text-muted-foreground">Loading video information...</p>
-          </div>
-        ) : videoInfo ? (
-          <div className="space-y-6">
-            <VideoMetadata {...videoInfo} />
-            <QualityOptions
-              options={videoInfo.qualityOptions}
-              onDownload={handleDownload}
-            />
-          </div>
-        ) : (
-          <div className="bg-muted/50 rounded-lg p-8 text-center">
-            <p className="text-muted-foreground">
-              Enter a YouTube URL to see video information and download options
-            </p>
-          </div>
-        )}
-      </div>
-
-      {/* Disclaimer */}
-      <div className="mt-12 p-4 bg-muted/30 rounded-lg text-center">
-        <p className="text-sm text-muted-foreground">
-          <strong>Disclaimer:</strong> This tool is for educational purposes only. 
-          Please respect YouTube's Terms of Service and copyright laws. 
-          Only download videos you have permission to download.
-        </p>
-        <p className="text-xs text-muted-foreground mt-2">
-          Downloads are rate-limited to 5 per minute per IP address.
-        </p>
-      </div>
-    </main>
+    </>
   );
 }

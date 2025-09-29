@@ -1,0 +1,190 @@
+---
+globs: *.ts,*.tsx
+---
+# TypeScript Patterns & Best Practices
+
+## Code Style
+
+### Strict TypeScript
+- Always use explicit types for function parameters and return values
+- Use interfaces for component props
+- Avoid `any` type - use `unknown` or proper types
+- Enable strict mode in tsconfig.json
+
+### Naming Conventions
+- Components: PascalCase (e.g., `HeroSection`, `QualityOptions`)
+- Functions: camelCase (e.g., `handleDownload`, `scrollToUrlInput`)
+- Interfaces: PascalCase with descriptive names (e.g., `VideoInfo`, `QualityOption`)
+- Constants: UPPER_SNAKE_CASE or camelCase for configs
+
+## Component Patterns
+
+### Functional Components with TypeScript
+```tsx
+interface ComponentProps {
+  title: string;
+  onAction?: () => void;
+  isLoading?: boolean;
+}
+
+export function Component({ title, onAction, isLoading = false }: ComponentProps) {
+  // Implementation
+}
+```
+
+### Client Components
+- Add `'use client'` at the top of files using hooks or browser APIs
+- Use React 19 hooks (useState, useRef, useEffect)
+- Keep client components focused and small
+
+### Server Components
+- API routes should export POST/GET functions
+- Use NextResponse for API responses
+- Handle errors with try-catch and proper error messages
+
+## Interface Definitions
+
+### Video Metadata
+```tsx
+interface VideoInfo {
+  id: string;
+  title: string;
+  thumbnail: string;
+  duration: number;
+  channel: string;
+  channelUrl?: string;
+  views?: number;
+  uploadDate?: string;
+  uploadDateFormatted?: string;
+  originalUrl?: string;
+  qualityOptions: QualityOption[];
+  formats: Format[];
+}
+```
+
+### Quality Options
+```tsx
+interface QualityOption {
+  id: string;
+  title: string;
+  description: string;
+  quality: string;
+  format: string;
+  estimatedSize?: string;
+  icon: string;
+}
+```
+
+## API Route Patterns
+
+### Request Handling
+```tsx
+export async function POST(request: Request) {
+  try {
+    const body = await request.json();
+    // Validate input
+    if (!body.url) {
+      return NextResponse.json(
+        { error: 'URL is required' },
+        { status: 400 }
+      );
+    }
+    // Process request
+    const result = await processVideo(body.url);
+    return NextResponse.json(result);
+  } catch (error) {
+    console.error('Error:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
+```
+
+### File Downloads
+```tsx
+// Return file stream with proper headers
+return new NextResponse(fileStream, {
+  headers: {
+    'Content-Type': 'video/mp4',
+    'Content-Disposition': `attachment; filename="${filename}"`,
+    'Content-Length': fileSize.toString(),
+  },
+});
+```
+
+## State Management
+
+### React Hooks
+```tsx
+const [videoInfo, setVideoInfo] = useState<VideoInfo | null>(null);
+const [isLoading, setIsLoading] = useState(false);
+const urlInputRef = useRef<HTMLDivElement>(null);
+```
+
+### Async Operations
+```tsx
+const handleFetch = async (url: string) => {
+  setIsLoading(true);
+  try {
+    const response = await fetch('/api/metadata', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url }),
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to fetch');
+    }
+    
+    const data = await response.json();
+    setVideoInfo(data);
+  } catch (error) {
+    console.error('Error:', error);
+    // Handle error
+  } finally {
+    setIsLoading(false);
+  }
+};
+```
+
+## Import Organization
+
+### Order
+1. React imports
+2. Next.js imports
+3. Third-party libraries
+4. Local components
+5. Types/interfaces
+6. Utils/services
+
+```tsx
+'use client';
+
+import { useState, useRef } from 'react';
+import { URLInput } from '@/components/url-input';
+import { VideoMetadata } from '@/components/video-metadata';
+import { HeroSection } from '@/components/hero-section';
+import type { VideoInfo, QualityOption } from '@/lib/types';
+```
+
+## Error Handling
+
+### Try-Catch Blocks
+- Always wrap async operations
+- Log errors to console
+- Provide user-friendly error messages
+- Return appropriate HTTP status codes
+
+### Type Guards
+```tsx
+function isVideoInfo(data: unknown): data is VideoInfo {
+  return (
+    typeof data === 'object' &&
+    data !== null &&
+    'id' in data &&
+    'title' in data
+  );
+}
+```

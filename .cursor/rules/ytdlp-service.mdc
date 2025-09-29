@@ -1,0 +1,167 @@
+---
+description: Guidelines for working with yt-dlp service and video processing
+---
+# yt-dlp Service Integration
+
+## Service Architecture
+
+The [ytdlp.service.ts](mdc:services/ytdlp.service.ts) is the core service handling all video operations.
+
+## Key Operations
+
+### 1. Video Metadata Extraction
+```typescript
+async getVideoMetadata(url: string): Promise<VideoMetadata>
+```
+- Extracts video information using `yt-dlp --dump-json`
+- Returns: title, duration, thumbnail, channel, views, upload date
+- Includes available formats and quality options
+
+### 2. Quality Options Generation
+```typescript
+async generateQualityOptions(formats: any[], info: any): Promise<QualityOption[]>
+```
+Returns three predefined quality options:
+- **best_merged**: Highest video quality + best audio (merged with ffmpeg)
+- **combined_720p**: Single file with 720p + audio
+- **audio_only**: Highest quality audio extracted as MP3
+
+### 3. Video Download with Quality
+```typescript
+async downloadVideoWithQuality(
+  url: string, 
+  qualityId: string, 
+  outputPath?: string
+): Promise<DownloadResult>
+```
+
+## Quality ID Mapping
+
+### best_merged
+- Format: `bestvideo+bestaudio/best`
+- Merges separate streams using ffmpeg
+- Output: MP4 with highest quality video + audio
+- Guarantees audio is included
+
+### combined_720p
+- Format: `bestvideo[height<=720][ext=mp4]+bestaudio[ext=m4a]/best[height<=720][ext=mp4]`
+- Single file download
+- Limited to 720p maximum
+- Faster download (no merging needed)
+
+### audio_only
+- Format: `bestaudio/best`
+- Extracts audio stream
+- Converts to MP3 format
+- Output: MP3 file with best audio quality
+
+## Command Construction
+
+### Basic yt-dlp Commands
+```bash
+# Metadata extraction
+yt-dlp --dump-json --no-playlist [URL]
+
+# Download with format
+yt-dlp -f [FORMAT] -o [OUTPUT] [URL]
+
+# Audio extraction
+yt-dlp -f bestaudio -x --audio-format mp3 -o [OUTPUT] [URL]
+```
+
+### Critical Flags
+- `--no-playlist`: Download single video only
+- `--no-check-certificate`: Bypass SSL issues
+- `-o`: Output path template
+- `-f`: Format selection
+- `-x`: Extract audio
+- `--audio-format`: Audio output format
+
+## File Handling
+
+### Output Paths
+- Use `/tmp/` directory for temporary downloads
+- Sanitize filenames: remove special characters
+- Format: `{video_title}.{ext}`
+- Auto-cleanup after 30 seconds
+
+### Filename Sanitization
+```typescript
+const sanitizedTitle = title
+  .replace(/[^\w\s-]/g, '')
+  .replace(/\s+/g, ' ')
+  .trim();
+```
+
+### File Cleanup
+```typescript
+setTimeout(() => {
+  fs.unlink(filePath, (err) => {
+    if (!err) console.log('Cleaned up:', filePath);
+  });
+}, 30000); // 30 seconds
+```
+
+## Error Handling
+
+### Common Errors
+1. **yt-dlp not found**: Ensure yt-dlp is installed globally
+2. **ffmpeg not found**: Required for merging streams
+3. **Invalid URL**: Validate YouTube URL format
+4. **Video unavailable**: Check video privacy/availability
+5. **Format not available**: Fallback to alternative formats
+
+### Error Messages
+- Return descriptive error messages to client
+- Log full error details to console
+- Include video URL in error context
+
+## Format Detection
+
+### Video Format Properties
+- `format_id`: Unique format identifier
+- `height`: Video resolution (e.g., 1080, 720)
+- `vcodec`: Video codec (e.g., "vp9", "h264")
+- `acodec`: Audio codec (e.g., "opus", "m4a", "none")
+- `filesize`: Approximate file size in bytes
+- `tbr`: Total bitrate
+
+### Quality Sorting
+```typescript
+// Find best video format
+const bestVideo = formats
+  .filter(f => f.vcodec !== 'none' && f.acodec === 'none')
+  .sort((a, b) => (b.height || 0) - (a.height || 0))[0];
+
+// Find best audio format
+const bestAudio = formats
+  .filter(f => f.acodec !== 'none' && f.vcodec === 'none')
+  .sort((a, b) => (b.abr || 0) - (a.abr || 0))[0];
+```
+
+## Dependencies
+
+### System Requirements
+- **yt-dlp**: Main video downloader (`pip install yt-dlp`)
+- **ffmpeg**: Stream merging and conversion (`brew install ffmpeg`)
+- **Node.js**: 18+ for async/await and ES modules
+
+### Package Dependencies
+- `child_process`: Execute system commands
+- `fs`: File system operations
+- `path`: Path manipulation
+
+## Performance Considerations
+
+### Optimization Tips
+- Use streaming for large files
+- Implement rate limiting to prevent abuse
+- Cache metadata temporarily
+- Clean up temp files promptly
+- Use efficient format selection
+
+### Rate Limiting
+```typescript
+// Implement in middleware
+const DOWNLOAD_LIMIT = 5; // per minute per IP
+```

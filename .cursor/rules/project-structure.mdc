@@ -1,0 +1,43 @@
+---
+alwaysApply: true
+---
+# YouTube Downloader - Project Structure
+
+## Project Overview
+This is a professional YouTube downloader built with Next.js 15, React 19, TypeScript, and features a stunning Liquid Glass design aesthetic.
+
+## Core Architecture
+
+### Entry Points
+- [app/page.tsx](mdc:app/page.tsx) - Main application page with hero section and download interface
+- [app/layout.tsx](mdc:app/layout.tsx) - Root layout with minimal wrapper for full-screen experience
+- [app/globals.css](mdc:app/globals.css) - Global styles including Liquid Glass effects
+
+### API Routes
+- [app/api/metadata/route.ts](mdc:app/api/metadata/route.ts) - Fetches video metadata and quality options
+- [app/api/download/route.ts](mdc:app/api/download/route.ts) - Handles video/audio downloads with quality selection
+
+### Core Services
+- [services/ytdlp.service.ts](mdc:services/ytdlp.service.ts) - Wrapper service for yt-dlp operations, quality detection, and ffmpeg merging
+
+### UI Components
+- [components/hero-section.tsx](mdc:components/hero-section.tsx) - Full-screen Liquid Glass hero with animations
+- [components/url-input.tsx](mdc:components/url-input.tsx) - YouTube URL input with validation
+- [components/video-metadata.tsx](mdc:components/video-metadata.tsx) - Displays video information
+- [components/quality-options.tsx](mdc:components/quality-options.tsx) - Quality selection cards with glassmorphism
+- [components/ui/](mdc:components/ui/) - Shadcn UI components (Button, Card, Badge, Input, Progress)
+
+## Key Features
+1. **Three Quality Options**: Best merged (video+audio), Combined format (720p), Audio-only (MP3)
+2. **Liquid Glass Design**: Animated gradients, floating shapes, glassmorphism effects
+3. **Automatic Audio Merging**: Uses ffmpeg to merge separate video/audio streams
+4. **Full-Screen Immersive UI**: Hero-first design with no traditional header/footer
+5. **Dark Mode Support**: Beautiful slate/blue/indigo color scheme
+
+## Technology Stack
+- **Framework**: Next.js 15 (App Router)
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS
+- **UI Library**: Radix UI primitives
+- **Video Processing**: yt-dlp + ffmpeg
+- **State Management**: React hooks (useState, useRef)

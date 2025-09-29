@@ -1,0 +1,327 @@
+---
+alwaysApply: false
+---
+# Deployment & Production Considerations
+
+## System Requirements
+
+### Required System Binaries
+1. **yt-dlp**: YouTube video downloader
+   - Install: `pip install yt-dlp`
+   - Update: `pip install --upgrade yt-dlp`
+   - Version: Latest recommended
+
+2. **ffmpeg**: Video/audio processing
+   - macOS: `brew install ffmpeg`
+   - Ubuntu/Debian: `sudo apt install ffmpeg`
+   - Required for merging video + audio streams
+
+3. **Node.js**: Runtime environment
+   - Version: 18.x or higher
+   - Required for Next.js 15
+
+## Deployment Platforms
+
+### ❌ Not Compatible With
+- **Vercel** (serverless) - Requires system binaries
+- **Netlify** (serverless) - Requires system binaries
+- **AWS Lambda** (serverless) - Requires custom layers
+
+### ✅ Recommended Platforms
+
+#### 1. VPS/Dedicated Servers
+**Platforms**: DigitalOcean, Linode, AWS EC2, Hetzner
+
+**Setup Steps**:
+```bash
+# 1. Install system dependencies
+apt update
+apt install -y python3-pip ffmpeg nodejs npm
+
+# 2. Install yt-dlp
+pip3 install yt-dlp
+
+# 3. Clone repository
+git clone https://github.com/AZLabsAI/youtube-downloader.git
+cd youtube-downloader
+
+# 4. Install Node dependencies
+npm install
+
+# 5. Build application
+npm run build
+
+# 6. Start with PM2
+npm install -g pm2
+pm2 start npm --name "youtube-downloader" -- start
+pm2 save
+pm2 startup
+```
+
+#### 2. Railway
+- Supports buildpacks with system dependencies
+- Easy deployment from GitHub
+- Add buildpack for yt-dlp and ffmpeg
+
+#### 3. Render
+- Supports Docker containers
+- Create Dockerfile with dependencies
+
+#### 4. Docker Deployment
+
+**Dockerfile Example**:
+```dockerfile
+FROM node:18-alpine
+
+# Install Python, pip, and ffmpeg
+RUN apk add --no-cache python3 py3-pip ffmpeg
+
+# Install yt-dlp
+RUN pip3 install yt-dlp
+
+# Set working directory
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+
+# Install dependencies
+RUN npm ci --only=production
+
+# Copy application code
+COPY . .
+
+# Build Next.js application
+RUN npm run build
+
+# Expose port
+EXPOSE 3000
+
+# Start application
+CMD ["npm", "start"]
+```
+
+**Docker Compose**:
+```yaml
+version: '3.8'
+services:
+  youtube-downloader:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+    volumes:
+      - /tmp:/tmp
+    restart: unless-stopped
+```
+
+## Environment Variables
+
+### Production Configuration
+Create `.env.production` file:
+```env
+NODE_ENV=production
+PORT=3000
+```
+
+## Performance Optimization
+
+### 1. Caching Strategy
+```typescript
+// Cache video metadata for 5 minutes
+const metadataCache = new Map();
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+function getCachedMetadata(url: string) {
+  const cached = metadataCache.get(url);
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+    return cached.data;
+  }
+  return null;
+}
+```
+
+### 2. Rate Limiting
+```typescript
+// middleware.ts
+const rateLimiter = new Map();
+const RATE_LIMIT = 5; // requests per minute
+const RATE_WINDOW = 60 * 1000; // 1 minute
+
+export function middleware(request: NextRequest) {
+  const ip = request.ip || 'unknown';
+  const now = Date.now();
+  
+  const userRequests = rateLimiter.get(ip) || [];
+  const recentRequests = userRequests.filter(
+    timestamp => now - timestamp < RATE_WINDOW
+  );
+  
+  if (recentRequests.length >= RATE_LIMIT) {
+    return NextResponse.json(
+      { error: 'Rate limit exceeded' },
+      { status: 429 }
+    );
+  }
+  
+  rateLimiter.set(ip, [...recentRequests, now]);
+  return NextResponse.next();
+}
+```
+
+### 3. Cleanup Background Jobs
+```typescript
+// Run cleanup every 30 minutes
+setInterval(() => {
+  const tmpDir = '/tmp';
+  const now = Date.now();
+  const maxAge = 30 * 60 * 1000; // 30 minutes
+  
+  fs.readdir(tmpDir, (err, files) => {
+    if (err) return;
+    
+    files.forEach(file => {
+      const filePath = path.join(tmpDir, file);
+      fs.stat(filePath, (err, stats) => {
+        if (err) return;
+        if (now - stats.mtime.getTime() > maxAge) {
+          fs.unlink(filePath, () => {});
+        }
+      });
+    });
+  });
+}, 30 * 60 * 1000);
+```
+
+## Monitoring
+
+### 1. Health Check Endpoint
+Create `app/api/health/route.ts`:
+```typescript
+export async function GET() {
+  try {
+    // Check yt-dlp availability
+    const ytdlpCheck = await checkCommand('yt-dlp --version');
+    
+    // Check ffmpeg availability
+    const ffmpegCheck = await checkCommand('ffmpeg -version');
+    
+    // Check disk space
+    const diskSpace = await checkDiskSpace('/tmp');
+    
+    return NextResponse.json({
+      status: 'healthy',
+      checks: {
+        ytdlp: ytdlpCheck,
+        ffmpeg: ffmpegCheck,
+        diskSpace: diskSpace,
+      },
+    });
+  } catch (error) {
+    return NextResponse.json(
+      { status: 'unhealthy', error: error.message },
+      { status: 503 }
+    );
+  }
+}
+```
+
+### 2. Logging
+```typescript
+// Use structured logging
+import winston from 'winston';
+
+const logger = winston.createLogger({
+  level: 'info',
+  format: winston.format.json(),
+  transports: [
+    new winston.transports.File({ filename: 'error.log', level: 'error' }),
+    new winston.transports.File({ filename: 'combined.log' }),
+  ],
+});
+
+if (process.env.NODE_ENV !== 'production') {
+  logger.add(new winston.transports.Console({
+    format: winston.format.simple(),
+  }));
+}
+```
+
+### 3. Error Tracking
+Consider integrating:
+- **Sentry**: For error tracking
+- **LogRocket**: For session replay
+- **DataDog**: For application monitoring
+
+## Security Considerations
+
+### 1. Content Security Policy
+Add to `next.config.ts`:
+```typescript
+const nextConfig = {
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: [
+          {
+            key: 'Content-Security-Policy',
+            value: "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline';",
+          },
+        ],
+      },
+    ];
+  },
+};
+```
+
+### 2. HTTPS Enforcement
+Always use HTTPS in production. Configure with:
+- Let's Encrypt for free SSL certificates
+- Cloudflare for CDN + SSL
+- Nginx reverse proxy with SSL termination
+
+### 3. Input Validation
+- Validate all user inputs
+- Sanitize filenames
+- Prevent command injection
+- Rate limit API endpoints
+
+## Backup Strategy
+
+### 1. Configuration Backup
+- Store environment variables securely
+- Document system dependencies
+- Maintain deployment scripts
+
+### 2. Database (if added)
+- Regular database backups
+- Point-in-time recovery
+- Offsite backup storage
+
+## Scaling Considerations
+
+### Horizontal Scaling
+- Multiple server instances behind load balancer
+- Shared /tmp directory via NFS or S3
+- Redis for distributed caching
+- Message queue for download jobs
+
+### Vertical Scaling
+- Increase CPU for faster processing
+- More RAM for concurrent downloads
+- Faster SSD for I/O operations
+
+## Cost Optimization
+
+### Resource Management
+- Set download size limits
+- Implement automatic cleanup
+- Monitor bandwidth usage
+- Cache frequently requested videos
+
+### CDN Integration
+- Use CDN for static assets
+- Cache video metadata
+- Reduce server load

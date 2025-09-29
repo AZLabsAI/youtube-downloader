@@ -1,0 +1,113 @@
+---
+alwaysApply: true
+---
+# Liquid Glass Design System
+
+## Design Philosophy
+The YouTube Downloader features a revolutionary **Liquid Glass** aesthetic with:
+- Immersive full-screen experiences
+- Animated gradient orbs and geometric shapes
+- Glassmorphism effects with backdrop blur
+- Smooth transitions and hover states
+- Professional slate/blue/indigo/purple color palette
+
+## Color Palette
+
+### Primary Colors
+- **Blue**: `from-blue-600 to-purple-600` for primary CTAs
+- **Slate**: Base background colors (50/800/900 with opacity)
+- **Indigo/Purple**: Accent gradients for visual interest
+
+### Gradient Patterns
+```tsx
+// Hero backgrounds
+bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100
+
+// Text gradients
+bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent
+
+// Card backgrounds
+bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm
+```
+
+## Animation Guidelines
+
+### Floating Orbs
+- Use `animate-pulse` with staggered delays
+- Large blur radius (blur-3xl)
+- Low opacity gradients (20% max)
+- Strategic positioning (top/bottom, left/right quarters)
+
+### Geometric Shapes
+- Small floating elements with `animate-bounce`
+- Staggered delays (500ms, 1000ms, 1500ms)
+- Various sizes (w-3 to w-6)
+- Semi-transparent colors
+
+### Hover Effects
+```tsx
+// Cards
+hover:bg-white/80 hover:shadow-xl hover:-translate-y-2 transition-all duration-300
+
+// Buttons
+hover:scale-105 transform transition-all duration-300
+
+// Stats
+group-hover:scale-110 transition-transform duration-300
+```
+
+## Component Styling
+
+### Glass Cards
+```tsx
+className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm rounded-2xl p-8 border border-white/20 dark:border-slate-700/50"
+```
+
+### Premium Buttons
+```tsx
+className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300 rounded-xl"
+```
+
+### Feature Cards
+- Rounded-2xl corners
+- 8px padding minimum
+- Subtle borders with low opacity
+- Hover effects with lift and shadow
+
+## Typography
+
+### Headings
+- Extra large: `text-5xl md:text-7xl lg:text-8xl`
+- Gradient text for impact
+- Multiple lines with different gradient combinations
+- Font weight: 600-700 (semibold/bold)
+
+### Body Text
+- Base: `text-xl md:text-2xl`
+- Color: `text-slate-600 dark:text-slate-300`
+- Font weight: 300-400 (light/normal)
+- Leading: `leading-relaxed`
+
+### Stats/Numbers
+- Size: `text-3xl md:text-4xl font-bold`
+- Gradient backgrounds
+- Centered alignment
+
+## Spacing & Layout
+
+### Container Widths
+- Hero: `max-w-6xl mx-auto`
+- Content: `max-w-4xl mx-auto`
+- Feature grids: `max-w-5xl mx-auto`
+
+### Padding/Margins
+- Section padding: `py-20 lg:py-32`
+- Card padding: `p-6` to `p-8`
+- Grid gaps: `gap-6` to `gap-8`
+
+## Dark Mode
+All components must support dark mode with:
+- `dark:` prefixes on colors
+- Inverted opacity for overlays
+- Slate color variants (800/900)
+- Border adjustments for visibility

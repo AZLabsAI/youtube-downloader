@@ -1,0 +1,329 @@
+---
+globs: app/api/**/*.ts
+---
+# Next.js API Routes Guidelines
+
+## API Structure
+
+The application uses Next.js 15 App Router API routes located in:
+```
+app/api/
+├── metadata/
+│   └── route.ts    # Video metadata endpoint
+└── download/
+    └── route.ts    # Video download endpoint
+```
+
+## Metadata Endpoint
+
+Reference: [app/api/metadata/route.ts](mdc:app/api/metadata/route.ts)
+
+### Endpoint: POST `/api/metadata`
+
+**Purpose**: Fetch video metadata and available quality options
+
+**Request Body**:
+```json
+{
+  "url": "https://www.youtube.com/watch?v=VIDEO_ID"
+}
+```
+
+**Response**:
+```json
+{
+  "id": "VIDEO_ID",
+  "title": "Video Title",
+  "thumbnail": "https://...",
+  "duration": 213,
+  "channel": "Channel Name",
+  "channelUrl": "https://...",
+  "views": 1000000,
+  "uploadDate": "20091025",
+  "uploadDateFormatted": "October 25, 2009",
+  "originalUrl": "https://...",
+  "qualityOptions": [
+    {
+      "id": "best_merged",
+      "title": "Best Quality",
+      "description": "2160p + 129 kbps audio",
+      "quality": "2160p",
+      "format": "mp4",
+      "estimatedSize": "241.7 MB",
+      "icon": "🎬🎵"
+    },
+    {
+      "id": "combined_720p",
+      "title": "Combined Format",
+      "description": "720p with audio",
+      "quality": "720p",
+      "format": "mp4",
+      "estimatedSize": "95.3 MB",
+      "icon": "📺"
+    },
+    {
+      "id": "audio_only",
+      "title": "Audio Only",
+      "description": "MP3 Audio",
+      "quality": "128 kbps",
+      "format": "mp3",
+      "estimatedSize": "3.4 MB",
+      "icon": "🎵"
+    }
+  ]
+}
+```
+
+**Implementation Pattern**:
+```typescript
+export async function POST(request: Request) {
+  try {
+    // 1. Parse and validate request
+    const { url } = await request.json();
+    
+    if (!url || !isValidYouTubeUrl(url)) {
+      return NextResponse.json(
+        { error: 'Invalid YouTube URL' },
+        { status: 400 }
+      );
+    }
+    
+    // 2. Fetch video metadata
+    const metadata = await ytdlpService.getVideoMetadata(url);
+    
+    // 3. Generate quality options
+    const qualityOptions = await ytdlpService.generateQualityOptions(
+      metadata.formats,
+      metadata
+    );
+    
+    // 4. Return formatted response
+    return NextResponse.json({
+      ...metadata,
+      qualityOptions,
+    });
+  } catch (error) {
+    console.error('Metadata API Error:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch video metadata' },
+      { status: 500 }
+    );
+  }
+}
+```
+
+## Download Endpoint
+
+Reference: [app/api/download/route.ts](mdc:app/api/download/route.ts)
+
+### Endpoint: POST `/api/download`
+
+**Purpose**: Download video/audio with specified quality
+
+**Request Body**:
+```json
+{
+  "url": "https://www.youtube.com/watch?v=VIDEO_ID",
+  "qualityId": "best_merged"
+}
+```
+
+**Response**: Binary file stream with headers
+```
+Content-Type: video/mp4 | audio/mpeg
+Content-Disposition: attachment; filename="Video Title.mp4"
+Content-Length: 12345678
+```
+
+**Implementation Pattern**:
+```typescript
+export async function POST(request: Request) {
+  try {
+    // 1. Parse request
+    const { url, qualityId } = await request.json();
+    
+    // 2. Validate inputs
+    if (!url || !qualityId) {
+      return NextResponse.json(
+        { error: 'Missing required parameters' },
+        { status: 400 }
+      );
+    }
+    
+    // 3. Download video
+    const result = await ytdlpService.downloadVideoWithQuality(
+      url,
+      qualityId
+    );
+    
+    // 4. Read file as stream
+    const fileBuffer = fs.readFileSync(result.filePath);
+    
+    // 5. Determine content type
+    const contentType = result.filePath.endsWith('.mp3')
+      ? 'audio/mpeg'
+      : 'video/mp4';
+    
+    // 6. Schedule cleanup
+    setTimeout(() => {
+      fs.unlink(result.filePath, (err) => {
+        if (!err) console.log('Cleaned up:', result.filePath);
+      });
+    }, 30000);
+    
+    // 7. Return file stream
+    return new NextResponse(fileBuffer, {
+      headers: {
+        'Content-Type': contentType,
+        'Content-Disposition': `attachment; filename="${result.filename}"`,
+        'Content-Length': fileBuffer.length.toString(),
+      },
+    });
+  } catch (error) {
+    console.error('Download API Error:', error);
+    return NextResponse.json(
+      { error: 'Download failed' },
+      { status: 500 }
+    );
+  }
+}
+```
+
+## Error Handling
+
+### Standard Error Responses
+
+**400 Bad Request**:
+```typescript
+return NextResponse.json(
+  { error: 'Invalid parameters' },
+  { status: 400 }
+);
+```
+
+**404 Not Found**:
+```typescript
+return NextResponse.json(
+  { error: 'Video not found' },
+  { status: 404 }
+);
+```
+
+**500 Internal Server Error**:
+```typescript
+return NextResponse.json(
+  { error: 'Internal server error' },
+  { status: 500 }
+);
+```
+
+### Error Logging
+Always log detailed errors to console:
+```typescript
+catch (error) {
+  console.error('Detailed error context:', {
+    url,
+    qualityId,
+    error: error instanceof Error ? error.message : error,
+    stack: error instanceof Error ? error.stack : undefined,
+  });
+}
+```
+
+## Validation
+
+### URL Validation
+```typescript
+function isValidYouTubeUrl(url: string): boolean {
+  const youtubeRegex = /^(https?:\/\/)?(www\.)?(youtube\.com\/watch\?v=|youtu\.be\/)[\w-]+/;
+  return youtubeRegex.test(url);
+}
+```
+
+### Quality ID Validation
+```typescript
+const VALID_QUALITY_IDS = ['best_merged', 'combined_720p', 'audio_only'];
+
+function isValidQualityId(id: string): boolean {
+  return VALID_QUALITY_IDS.includes(id);
+}
+```
+
+## Performance Considerations
+
+### Rate Limiting
+Implement rate limiting middleware:
+```typescript
+// middleware.ts
+export function middleware(request: NextRequest) {
+  // Check rate limit
+  const ip = request.ip || 'unknown';
+  const limit = await checkRateLimit(ip);
+  
+  if (!limit.allowed) {
+    return NextResponse.json(
+      { error: 'Rate limit exceeded' },
+      { status: 429 }
+    );
+  }
+  
+  return NextResponse.next();
+}
+```
+
+### Streaming Large Files
+For very large files, use streaming:
+```typescript
+const stream = fs.createReadStream(filePath);
+return new NextResponse(stream as any, {
+  headers: {
+    'Content-Type': contentType,
+    'Content-Disposition': `attachment; filename="${filename}"`,
+  },
+});
+```
+
+### Timeout Handling
+Set reasonable timeouts:
+```typescript
+const controller = new AbortController();
+const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 seconds
+
+try {
+  const result = await downloadWithSignal(url, qualityId, controller.signal);
+  clearTimeout(timeoutId);
+  return result;
+} catch (error) {
+  if (error.name === 'AbortError') {
+    return NextResponse.json(
+      { error: 'Download timeout' },
+      { status: 408 }
+    );
+  }
+  throw error;
+}
+```
+
+## Security
+
+### Input Sanitization
+- Always validate and sanitize user inputs
+- Prevent path traversal attacks
+- Escape special characters in filenames
+
+### Resource Management
+- Clean up temporary files promptly
+- Limit concurrent downloads
+- Monitor disk space usage
+
+### CORS Configuration
+If needed, configure CORS headers:
+```typescript
+return new NextResponse(data, {
+  headers: {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'POST',
+    'Access-Control-Allow-Headers': 'Content-Type',
+  },
+});
+```

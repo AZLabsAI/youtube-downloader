@@ -1,0 +1,239 @@
+---
+globs: components/**/*.tsx
+---
+# Component Development Guidelines
+
+## Component Structure
+
+### File Organization
+```
+components/
+├── ui/              # Reusable UI primitives (shadcn/ui)
+│   ├── button.tsx
+│   ├── card.tsx
+│   ├── badge.tsx
+│   ├── input.tsx
+│   └── progress.tsx
+├── hero-section.tsx      # Full-screen hero component
+├── url-input.tsx         # YouTube URL input with validation
+├── video-metadata.tsx    # Video information display
+├── quality-options.tsx   # Quality selection cards
+└── quality-selector.tsx  # Legacy quality selector
+```
+
+## Hero Section Component
+
+Reference: [components/hero-section.tsx](mdc:components/hero-section.tsx)
+
+### Key Features
+- Full-screen min-height viewport
+- Animated background with gradient orbs
+- Floating geometric shapes
+- Glassmorphism effects
+- Scroll indicator at bottom
+- Responsive typography scaling
+
+### Props Interface
+```tsx
+interface HeroSectionProps {
+  onGetStarted?: () => void;
+}
+```
+
+### Background Layers
+1. Base gradient: `bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100`
+2. Animated orbs: Large blurred circles with pulse animation
+3. Floating shapes: Small geometric elements with bounce animation
+4. Grid overlay: Subtle grid pattern for depth
+
+## URL Input Component
+
+Reference: [components/url-input.tsx](mdc:components/url-input.tsx)
+
+### Features
+- YouTube URL validation
+- Loading states
+- Error handling
+- Paste support
+- Clear button
+
+### Props
+```tsx
+interface URLInputProps {
+  onSubmit: (url: string) => Promise<void>;
+}
+```
+
+### Validation Pattern
+```typescript
+const YOUTUBE_REGEX = /^(https?:\/\/)?(www\.)?(youtube\.com\/watch\?v=|youtu\.be\/)[\w-]+/;
+```
+
+## Video Metadata Component
+
+Reference: [components/video-metadata.tsx](mdc:components/video-metadata.tsx)
+
+### Display Elements
+- Video thumbnail
+- Title
+- Channel name with clickable link
+- View count (formatted)
+- Upload date (human-readable)
+- Duration (formatted as MM:SS)
+
+### Props
+```tsx
+interface VideoMetadataProps {
+  title: string;
+  channel: string;
+  channelUrl?: string;
+  thumbnail: string;
+  duration: number;
+  views?: number;
+  uploadDateFormatted?: string;
+  originalUrl?: string;
+}
+```
+
+### Styling
+- Glass card with backdrop blur
+- Hover effects on thumbnail
+- Gradient text for title
+- Muted text for metadata
+
+## Quality Options Component
+
+Reference: [components/quality-options.tsx](mdc:components/quality-options.tsx)
+
+### Quality Cards
+Display three quality options:
+1. **Best Quality** (🎬🎵): Highest video + audio merged
+2. **Combined Format** (📺): 720p single file
+3. **Audio Only** (🎵): MP3 audio extraction
+
+### Props
+```tsx
+interface QualityOptionsProps {
+  options: QualityOption[];
+  onDownload: (qualityId: string) => Promise<void>;
+}
+
+interface QualityOption {
+  id: string;
+  title: string;
+  description: string;
+  quality: string;
+  format: string;
+  estimatedSize?: string;
+  icon: string;
+}
+```
+
+### Card Features
+- Glassmorphism background
+- Icon display
+- Quality and format badges
+- File size estimation
+- Loading state on download
+- Hover lift effect
+
+## UI Components (Shadcn)
+
+### Button Component
+Reference: [components/ui/button.tsx](mdc:components/ui/button.tsx)
+
+Variants:
+- `default`: Primary gradient button
+- `outline`: Border with transparent background
+- `ghost`: No background, subtle hover
+- `destructive`: Red for dangerous actions
+
+Sizes: `sm`, `default`, `lg`, `icon`
+
+### Card Component
+```tsx
+<Card>
+  <CardHeader>
+    <CardTitle>Title</CardTitle>
+    <CardDescription>Description</CardDescription>
+  </CardHeader>
+  <CardContent>Content</CardContent>
+  <CardFooter>Footer</CardFooter>
+</Card>
+```
+
+### Badge Component
+```tsx
+<Badge variant="default | secondary | outline | destructive">
+  Text
+</Badge>
+```
+
+### Progress Component
+```tsx
+<Progress value={50} max={100} />
+```
+
+## Component Best Practices
+
+### 1. Props Destructuring
+```tsx
+export function Component({ prop1, prop2, prop3 = 'default' }: ComponentProps) {
+  // Implementation
+}
+```
+
+### 2. Conditional Rendering
+```tsx
+{isLoading ? (
+  <LoadingState />
+) : data ? (
+  <DataDisplay data={data} />
+) : (
+  <EmptyState />
+)}
+```
+
+### 3. Event Handlers
+```tsx
+const handleClick = async () => {
+  try {
+    await asyncOperation();
+  } catch (error) {
+    console.error('Error:', error);
+  }
+};
+```
+
+### 4. Refs for DOM Access
+```tsx
+const elementRef = useRef<HTMLDivElement>(null);
+
+const scrollToElement = () => {
+  elementRef.current?.scrollIntoView({ behavior: 'smooth' });
+};
+```
+
+### 5. Responsive Design
+```tsx
+className="text-base md:text-lg lg:text-xl"
+className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
+className="p-4 md:p-6 lg:p-8"
+```
+
+## Accessibility
+
+### ARIA Labels
+- Add `aria-label` for icon-only buttons
+- Use `aria-describedby` for form inputs
+- Include `role` attributes when needed
+
+### Keyboard Navigation
+- Ensure all interactive elements are keyboard accessible
+- Use proper tab order
+- Add `onKeyDown` handlers for Enter/Space
+
+### Screen Readers
+- Use semantic HTML elements
+- Provide alt text for images
+- Include descriptive link text

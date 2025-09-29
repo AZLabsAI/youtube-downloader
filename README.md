@@ -48,21 +48,39 @@ A revolutionary YouTube downloader featuring a stunning **Liquid Glass** design 
 
 ### System Requirements
 - **Node.js** 18+ 
+- **pnpm** 8+ (Fast, disk space efficient package manager)
 - **yt-dlp** installed globally
 - **ffmpeg** for stream merging
 
 ### Installation Commands
-```bash
-# Install yt-dlp
-pip install yt-dlp
 
-# Install ffmpeg (macOS)
+#### Install pnpm
+```bash
+# Using npm (recommended)
+npm install -g pnpm
+
+# Using Homebrew (macOS)
+brew install pnpm
+
+# Using Corepack (Node.js 16.13+)
+corepack enable
+corepack prepare pnpm@latest --activate
+```
+
+#### Install yt-dlp
+```bash
+pip install yt-dlp
+```
+
+#### Install ffmpeg
+```bash
+# macOS
 brew install ffmpeg
 
-# Install ffmpeg (Ubuntu/Debian)
+# Ubuntu/Debian
 sudo apt install ffmpeg
 
-# Install ffmpeg (Windows)
+# Windows
 # Download from https://ffmpeg.org/download.html
 ```
 
@@ -76,12 +94,12 @@ cd youtube-downloader
 
 ### 2. Install Dependencies
 ```bash
-npm install
+pnpm install
 ```
 
 ### 3. Run Development Server
 ```bash
-npm run dev
+pnpm dev
 ```
 
 ### 4. Open in Browser
@@ -324,10 +342,10 @@ sudo apt install ffmpeg
 ## 🔧 Development
 
 ### Available Scripts
-- `npm run dev` - Start development server
-- `npm run build` - Build for production
-- `npm run start` - Start production server
-- `npm run lint` - Run ESLint
+- `pnpm dev` - Start development server
+- `pnpm build` - Build for production
+- `pnpm start` - Start production server
+- `pnpm lint` - Run ESLint
 
 ### Environment Variables
 ```env
@@ -343,18 +361,77 @@ This application currently requires:
 - File system write access
 
 ### Deployment Options
-1. **VPS/Dedicated Server** (Recommended)
-   - DigitalOcean, Linode, AWS EC2
-   - Install system dependencies
-   - Deploy with PM2 or Docker
 
-2. **Railway/Render**
-   - Support for system binaries
-   - Easy deployment with buildpacks
+#### 1. **VPS/Dedicated Server** (Recommended)
 
-3. **Docker Deployment**
-   - Use dockerfile with yt-dlp and ffmpeg
-   - Container-based deployment
+**Setup Steps**:
+```bash
+# 1. Install system dependencies
+apt update
+apt install -y python3-pip ffmpeg nodejs
+
+# 2. Install pnpm
+npm install -g pnpm
+
+# 3. Install yt-dlp
+pip3 install yt-dlp
+
+# 4. Clone repository
+git clone https://github.com/AZLabsAI/youtube-downloader.git
+cd youtube-downloader
+
+# 5. Install Node dependencies
+pnpm install
+
+# 6. Build application
+pnpm build
+
+# 7. Start with PM2
+pnpm add -g pm2
+pm2 start pnpm --name "youtube-downloader" -- start
+pm2 save
+pm2 startup
+```
+
+#### 2. **Railway/Render**
+- Support for system binaries
+- Easy deployment with buildpacks
+- Use pnpm as package manager
+
+#### 3. **Docker Deployment**
+
+**Dockerfile Example**:
+```dockerfile
+FROM node:18-alpine
+
+# Install Python, pip, ffmpeg, and pnpm
+RUN apk add --no-cache python3 py3-pip ffmpeg
+RUN npm install -g pnpm
+
+# Install yt-dlp
+RUN pip3 install yt-dlp
+
+# Set working directory
+WORKDIR /app
+
+# Copy package files
+COPY package.json pnpm-lock.yaml ./
+
+# Install dependencies
+RUN pnpm install --frozen-lockfile
+
+# Copy application code
+COPY . .
+
+# Build Next.js application
+RUN pnpm build
+
+# Expose port
+EXPOSE 3000
+
+# Start application
+CMD ["pnpm", "start"]
+```
 
 ### Future Enhancements
 - Pure JavaScript implementation for serverless deployment
@@ -368,9 +445,12 @@ This application currently requires:
 
 1. Fork the repository
 2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
+3. Install dependencies with `pnpm install`
+4. Make your changes
+5. Test with `pnpm dev`
+6. Build with `pnpm build`
+7. Add tests if applicable
+8. Submit a pull request
 
 ## 📄 License
 

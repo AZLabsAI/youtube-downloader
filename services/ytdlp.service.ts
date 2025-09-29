@@ -169,15 +169,37 @@ class YTDLPService {
   }
 
   /**
-   * Sanitize title for use as filename
+   * Sanitize title for use as filename with proper formatting
    */
   private sanitizeFilename(title: string): string {
     // Remove or replace characters that are not allowed in filenames
-    return title
+    let cleaned = title
       .replace(/[<>:"\/\\|?*\x00-\x1f]/g, '') // Remove invalid filename characters
-      .replace(/[\s]+/g, ' ') // Replace multiple spaces with single space
+      .replace(/[\s_-]+/g, ' ') // Replace multiple spaces/underscores/hyphens with single space
+      .replace(/[.,;!?]+/g, '') // Remove punctuation
       .trim()
-      .substring(0, 200); // Limit length to prevent filesystem issues
+      .replace(/^\.+|\.+$/g, ''); // Remove leading/trailing dots
+    
+    // Capitalize first letter of each word for better readability
+    cleaned = cleaned
+      .split(' ')
+      .map(word => {
+        if (word.length === 0) return word;
+        return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+      })
+      .join(' ');
+    
+    // Limit length to prevent filesystem issues
+    if (cleaned.length > 120) {
+      cleaned = cleaned.substring(0, 120).trim();
+      // Remove partial word at end
+      const lastSpace = cleaned.lastIndexOf(' ');
+      if (lastSpace > 80) {
+        cleaned = cleaned.substring(0, lastSpace);
+      }
+    }
+    
+    return cleaned || 'YouTube Video';
   }
 
   /**

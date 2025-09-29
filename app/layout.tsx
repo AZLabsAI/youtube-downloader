@@ -1,14 +1,12 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
-import { Header } from "@/components/header";
-import { Footer } from "@/components/footer";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "YTDownloader Pro - Professional YouTube Video Downloader",
-  description: "Enterprise-grade YouTube video downloading solution with advanced quality selection, lightning-fast processing, and enterprise-level security.",
+  title: "YouTube Downloader - Liquid Glass Design",
+  description: "Download YouTube videos with our revolutionary Liquid Glass interface. Fast, secure, and beautiful.",
 };
 
 export default function RootLayout({
@@ -19,13 +17,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
-        <div className="min-h-screen bg-background flex flex-col">
-          <Header />
-          <main className="flex-1">
-            {children}
-          </main>
-          <Footer />
-        </div>
+        {children}
       </body>
     </html>
   );

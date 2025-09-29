@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { ytdlpService } from '@/services/ytdlp.service';
 import { createReadStream, statSync } from 'fs';
 import { basename } from 'path';

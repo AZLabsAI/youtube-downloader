@@ -24,7 +24,7 @@ interface QualitySelectorProps {
   onDownload: (formatId: string) => void;
 }
 
-export function QualitySelector({ formats, videoUrl, onDownload }: QualitySelectorProps) {
+export function QualitySelector({ formats, videoUrl: _videoUrl, onDownload }: QualitySelectorProps) {
   const [selectedFormat, setSelectedFormat] = useState<string>('');
   const [activeTab, setActiveTab] = useState<'video' | 'audio'>('video');
   const [isDownloading, setIsDownloading] = useState(false);
@@ -154,9 +154,6 @@ export function QualitySelector({ formats, videoUrl, onDownload }: QualitySelect
                     )}
                   </div>
                 </div>
-                <span className="text-sm text-muted-foreground">
-                  {formatFileSize(format.filesize)}
-                </span>
               </div>
             </div>
           ))}

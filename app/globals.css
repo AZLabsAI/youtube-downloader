@@ -4,48 +4,72 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 0 0% 3.9%;
+    /* Liquid Glass Color System */
+    --lg-light: #ffffff;
+    --lg-dark: #000000;
+    --lg-glass: #f5f5f7;
+    --lg-glass-tint: rgba(255, 255, 255, 0.05);
+    --lg-shadow: rgba(0, 0, 0, 0.08);
+    
+    /* Glass refraction multipliers - mimics water-like optical properties */
+    --glass-reflex-light: 1.8;
+    --glass-reflex-dark: 0.4;
+    --saturation: 195%;
+    --blur-strength: 64px;
+    
+    --background: 240 8% 96%;
+    --foreground: 240 10% 3.9%;
     --card: 0 0% 100%;
-    --card-foreground: 0 0% 3.9%;
+    --card-foreground: 240 10% 3.9%;
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 3.9%;
-    --primary: 0 0% 9%;
+    --popover-foreground: 240 10% 3.9%;
+    --primary: 217 91% 60%;
     --primary-foreground: 0 0% 98%;
-    --secondary: 0 0% 96.1%;
-    --secondary-foreground: 0 0% 9%;
-    --muted: 0 0% 96.1%;
-    --muted-foreground: 0 0% 45.1%;
-    --accent: 0 0% 96.1%;
-    --accent-foreground: 0 0% 9%;
+    --secondary: 240 4.8% 95.9%;
+    --secondary-foreground: 240 5.9% 10%;
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
+    --accent: 240 4.8% 95.9%;
+    --accent-foreground: 240 5.9% 10%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 89.8%;
-    --input: 0 0% 89.8%;
-    --ring: 0 0% 3.9%;
-    --radius: 0.5rem;
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --ring: 217 91% 60%;
+    --radius: 1.6rem;
   }
 
   .dark {
-    --background: 0 0% 3.9%;
+    --lg-light: #ffffff;
+    --lg-dark: #000000;
+    --lg-glass: #18181b;
+    --lg-glass-tint: rgba(24, 24, 27, 0.08);
+    --lg-shadow: rgba(0, 0, 0, 0.5);
+    
+    --glass-reflex-light: 1.2;
+    --glass-reflex-dark: 2.8;
+    --saturation: 210%;
+    --blur-strength: 72px;
+    
+    --background: 240 10% 3.9%;
     --foreground: 0 0% 98%;
-    --card: 0 0% 3.9%;
+    --card: 240 10% 3.9%;
     --card-foreground: 0 0% 98%;
-    --popover: 0 0% 3.9%;
+    --popover: 240 10% 3.9%;
     --popover-foreground: 0 0% 98%;
-    --primary: 0 0% 98%;
+    --primary: 217 91% 60%;
     --primary-foreground: 0 0% 9%;
-    --secondary: 0 0% 14.9%;
+    --secondary: 240 3.7% 15.9%;
     --secondary-foreground: 0 0% 98%;
-    --muted: 0 0% 14.9%;
-    --muted-foreground: 0 0% 63.9%;
-    --accent: 0 0% 14.9%;
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+    --accent: 240 3.7% 15.9%;
     --accent-foreground: 0 0% 98%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 14.9%;
-    --input: 0 0% 14.9%;
-    --ring: 0 0% 83.1%;
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 217 91% 60%;
   }
 }
 
@@ -53,7 +77,550 @@
   * {
     @apply border-border;
   }
+  
   body {
     @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+@layer components {
+  /* ============================================
+     LIQUID GLASS CORE MATERIALS
+     Ultra-transparent with real refraction
+     ============================================ */
+  
+  /* Primary Material - Ultra-Transparent with Real Refraction */
+  .liquid-glass {
+    position: relative;
+    background: color-mix(in srgb, var(--lg-glass) 35%, transparent);
+    backdrop-filter: blur(calc(var(--blur-strength) * 1.8)) saturate(180%) brightness(1.15);
+    -webkit-backdrop-filter: blur(calc(var(--blur-strength) * 1.8)) saturate(180%) brightness(1.15);
+    border: 1px solid color-mix(in srgb, var(--lg-light) calc(var(--glass-reflex-light) * 25%), transparent);
+    
+    /* Multi-layer shadow system - creates realistic glass depth */
+    box-shadow: 
+      /* Top specular highlight */
+      inset 0 1.5px 0 0 color-mix(in srgb, var(--lg-light) calc(var(--glass-reflex-light) * 45%), transparent),
+      /* Top-left bright edge */
+      inset 3px 5px 0 -2px color-mix(in srgb, var(--lg-light) calc(var(--glass-reflex-light) * 60%), transparent),
+      /* Right edge highlight */
+      inset -1px 0 0 0 color-mix(in srgb, var(--lg-light) calc(var(--glass-reflex-light) * 28%), transparent),
+      /* Bottom-right reflection */
+      inset -2.5px -4px 0 -1.5px color-mix(in srgb, var(--lg-light) calc(var(--glass-reflex-light) * 38%), transparent),
+      /* Top inner shadow */
+      inset 0 4px 8px -3px color-mix(in srgb, var(--lg-dark) calc(var(--glass-reflex-dark) * 6%), transparent),
+      /* Bottom inner shadow */
+      inset 0 -8px 16px -6px color-mix(in srgb, var(--lg-dark) calc(var(--glass-reflex-dark) * 5%), transparent),
+      /* Ambient elevation shadow */
+      0 2px 20px -3px color-mix(in srgb, var(--lg-dark) calc(var(--glass-reflex-dark) * 5%), transparent),
+      /* Deep shadow for layering */
+      0 12px 48px -10px color-mix(in srgb, var(--lg-dark) calc(var(--glass-reflex-dark) * 8%), transparent),
+      /* Extended soft shadow */
+      0 24px 80px -16px color-mix(in srgb, var(--lg-dark) calc(var(--glass-reflex-dark) * 4%), transparent);
+    
+    transition: all 400ms cubic-bezier(0.4, 0.0, 0.2, 1);
+  }
+  
+  /* Strong Material - Water-like depth for containers */
+  .liquid-glass-strong {
+    background: color-mix(in srgb, var(--lg-glass) 45%, transparent);
+    backdrop-filter: blur(calc(var(--blur-strength) * 2.2)) saturate(190%) brightness(1.18);
+    -webkit-backdrop-filter: blur(calc(var(--blur-strength) * 2.2)) saturate(190%) brightness(1.18);
+    border: 1px solid color-mix(in srgb, var(--lg-light) calc(var(--glass-reflex-light) * 30%), transparent);
+    
+    box-shadow: 
+      inset 0 2px 0 0 color-mix(in srgb, var(--lg-light) calc(var(--glass-reflex-light) * 55%), transparent),
+      inset 4px 6px 0 -2px color-mix(in srgb, var(--lg-light) calc(var(--glass-reflex-light) * 70%), transparent),
+      inset -3px -5px 0 -2px color-mix(in srgb, var(--lg-light) calc(var(--glass-reflex-light) * 48%), transparent),
+      inset 0 6px 14px -4px color-mix(in srgb, var(--lg-dark) calc(var(--glass-reflex-dark) * 8%), transparent),
+      inset 0 -10px 20px -6px color-mix(in srgb, var(--lg-dark) calc(var(--glass-reflex-dark) * 7%), transparent),
+      0 4px 28px -4px color-mix(in srgb, var(--lg-dark) calc(var(--glass-reflex-dark) * 8%), transparent),
+      0 16px 60px -12px color-mix(in srgb, var(--lg-dark) calc(var(--glass-reflex-dark) * 12%), transparent);
+  }
+  
+  /* Interactive Buttons - Ultra-tactile gel-like with water effect */
+  .liquid-glass-button {
+    position: relative;
+    background: color-mix(in srgb, var(--lg-glass) 28%, transparent);
+    backdrop-filter: blur(calc(var(--blur-strength) * 1.5)) saturate(175%) brightness(1.12);
+    -webkit-backdrop-filter: blur(calc(var(--blur-strength) * 1.5)) saturate(175%) brightness(1.12);
+    border: 1.5px solid color-mix(in srgb, var(--lg-light) calc(var(--glass-reflex-light) * 35%), transparent);
+    
+    box-shadow: 
+      /* Top specular - bright water reflection */
+      inset 0 2.5px 0 color-mix(in srgb, var(--lg-light) calc(var(--glass-reflex-light) * 75%), transparent),
+      /* Top-left bright edge - like water surface */
+      inset 4px 6px 0 -2px color-mix(in srgb, var(--lg-light) calc(var(--glass-reflex-light) * 85%), transparent),
+      /* Bottom-right subtle reflection */
+      inset -3px -4px 0 -1px color-mix(in srgb, var(--lg-light) calc(var(--glass-reflex-light) * 58%), transparent),
+      /* Inner water depth */
+      inset 0 -6px 12px -4px color-mix(in srgb, var(--lg-dark) calc(var(--glass-reflex-dark) * 8%), transparent),
+      /* Outer elevation - floating effect */
+      0 2px 16px color-mix(in srgb, var(--lg-dark) calc(var(--glass-reflex-dark) * 5%), transparent),
+      0 10px 32px -6px color-mix(in srgb, var(--lg-dark) calc(var(--glass-reflex-dark) * 8%), transparent),
+      /* Soft glow halo */
+      0 0 60px -20px color-mix(in srgb, hsl(217 91% 60%) 25%, transparent);
+    
+    transition: all 250ms cubic-bezier(0.4, 0.0, 0.2, 1);
+    cursor: pointer;
+    will-change: transform, box-shadow;
+  }
+  
+  /* Hover - Lift and illuminate like water rising */
+  .liquid-glass-button:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--lg-glass) 38%, transparent);
+    border-color: color-mix(in srgb, var(--lg-light) calc(var(--glass-reflex-light) * 45%), transparent);
+    transform: translateY(-5px) scale(1.025);
+    
+    box-shadow: 
+      /* Enhanced specular highlights */
+      inset 0 3px 0 color-mix(in srgb, var(--lg-light) calc(var(--glass-reflex-light) * 90%), transparent),
+      inset 5px 8px 0 -2px color-mix(in srgb, var(--lg-light) calc(var(--glass-reflex-light) * 95%), transparent),
+      inset -4px -5px 0 -1px color-mix(in srgb, var(--lg-light) calc(var(--glass-reflex-light) * 72%), transparent),
+      /* Deeper inner shadows */
+      inset 0 -8px 16px -5px color-mix(in srgb, var(--lg-dark) calc(var(--glass-reflex-dark) * 6%), transparent),
+      /* Elevated outer shadows */
+      0 4px 24px color-mix(in srgb, var(--lg-dark) calc(var(--glass-reflex-dark) * 8%), transparent),
+      0 16px 48px -8px color-mix(in srgb, var(--lg-dark) calc(var(--glass-reflex-dark) * 14%), transparent),
+      /* Strong glow on hover */
+      0 0 100px -18px color-mix(in srgb, hsl(217 91% 60%) 40%, transparent),
+      0 0 140px -25px color-mix(in srgb, hsl(280 80% 65%) 30%, transparent);
+  }
+  
+  /* Active - Gel compression with water ripple effect */
+  .liquid-glass-button:active:not(:disabled) {
+    transform: translateY(-2px) scale(0.965);
+    background: color-mix(in srgb, var(--lg-glass) 32%, transparent);
+    
+    box-shadow: 
+      /* Compressed top highlight */
+      inset 0 2px 0 color-mix(in srgb, var(--lg-light) calc(var(--glass-reflex-light) * 45%), transparent),
+      /* Deep compression shadow - gel pressing down */
+      inset 0 8px 24px -6px color-mix(in srgb, var(--lg-dark) calc(var(--glass-reflex-dark) * 18%), transparent),
+      /* Pressed state elevation */
+      0 2px 10px color-mix(in srgb, var(--lg-dark) calc(var(--glass-reflex-dark) * 4%), transparent),
+      /* Ripple glow */
+      0 0 50px -15px color-mix(in srgb, hsl(217 91% 60%) 50%, transparent);
+    
+    transition: all 120ms cubic-bezier(0.4, 0.0, 0.6, 1);
+  }
+  
+  /* Ultra Clear Glass - Maximum transparency like looking through water */
+  .liquid-glass-clear {
+    background: color-mix(in srgb, var(--lg-glass) 18%, transparent);
+    backdrop-filter: blur(calc(var(--blur-strength) * 0.9)) saturate(165%) brightness(1.14);
+    -webkit-backdrop-filter: blur(calc(var(--blur-strength) * 0.9)) saturate(165%) brightness(1.14);
+    border: 1px solid color-mix(in srgb, var(--lg-light) calc(var(--glass-reflex-light) * 28%), transparent);
+    
+    box-shadow: 
+      inset 0 1.5px 0 color-mix(in srgb, var(--lg-light) calc(var(--glass-reflex-light) * 55%), transparent),
+      inset 3px 4px 0 -2px color-mix(in srgb, var(--lg-light) calc(var(--glass-reflex-light) * 65%), transparent),
+      inset -2px -3px 0 -1px color-mix(in srgb, var(--lg-light) calc(var(--glass-reflex-light) * 48%), transparent),
+      0 2px 18px -3px color-mix(in srgb, var(--lg-dark) calc(var(--glass-reflex-dark) * 5%), transparent),
+      0 12px 48px -12px color-mix(in srgb, var(--lg-dark) calc(var(--glass-reflex-dark) * 6%), transparent);
+  }
+  
+  /* Lens Material - Premium water droplet effect with refraction */
+  .liquid-glass-lens {
+    background: color-mix(in srgb, var(--lg-glass) 32%, transparent);
+    backdrop-filter: blur(calc(var(--blur-strength) * 2.0)) saturate(185%) brightness(1.16);
+    -webkit-backdrop-filter: blur(calc(var(--blur-strength) * 2.0)) saturate(185%) brightness(1.16);
+    border: 1.5px solid color-mix(in srgb, var(--lg-light) calc(var(--glass-reflex-light) * 32%), transparent);
+    
+    box-shadow: 
+      inset 0 3px 0 0 color-mix(in srgb, var(--lg-light) calc(var(--glass-reflex-light) * 68%), transparent),
+      inset 5px 8px 0 -3px color-mix(in srgb, var(--lg-light) calc(var(--glass-reflex-light) * 82%), transparent),
+      inset -4px -6px 0 -2px color-mix(in srgb, var(--lg-light) calc(var(--glass-reflex-light) * 62%), transparent),
+      inset 0 8px 24px -6px color-mix(in srgb, var(--lg-dark) calc(var(--glass-reflex-dark) * 11%), transparent),
+      0 5px 36px -5px color-mix(in srgb, var(--lg-dark) calc(var(--glass-reflex-dark) * 10%), transparent),
+      0 20px 80px -14px color-mix(in srgb, var(--lg-dark) calc(var(--glass-reflex-dark) * 13%), transparent);
+  }
+  
+  /* Water Wave Effect - Animated liquid surface */
+  .liquid-glass-water {
+    position: relative;
+    background: color-mix(in srgb, var(--lg-glass) 22%, transparent);
+    backdrop-filter: blur(calc(var(--blur-strength) * 1.6)) saturate(200%) brightness(1.18);
+    -webkit-backdrop-filter: blur(calc(var(--blur-strength) * 1.6)) saturate(200%) brightness(1.18);
+    border: 1px solid color-mix(in srgb, var(--lg-light) calc(var(--glass-reflex-light) * 38%), transparent);
+    overflow: hidden;
+    
+    box-shadow: 
+      inset 0 2px 0 0 color-mix(in srgb, var(--lg-light) calc(var(--glass-reflex-light) * 65%), transparent),
+      inset 4px 6px 0 -2px color-mix(in srgb, var(--lg-light) calc(var(--glass-reflex-light) * 78%), transparent),
+      inset -3px -4px 0 -1px color-mix(in srgb, var(--lg-light) calc(var(--glass-reflex-light) * 55%), transparent),
+      0 4px 32px -4px color-mix(in srgb, var(--lg-dark) calc(var(--glass-reflex-dark) * 9%), transparent),
+      0 16px 64px -12px color-mix(in srgb, var(--lg-dark) calc(var(--glass-reflex-dark) * 12%), transparent);
+  }
+  
+  /* Water wave animation overlay */
+  .liquid-glass-water::before {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    background: linear-gradient(
+      125deg,
+      transparent 0%,
+      color-mix(in srgb, var(--lg-light) 15%, transparent) 30%,
+      color-mix(in srgb, var(--lg-light) 25%, transparent) 50%,
+      color-mix(in srgb, var(--lg-light) 15%, transparent) 70%,
+      transparent 100%
+    );
+    opacity: 0.6;
+    animation: liquidWave 8s ease-in-out infinite;
+    pointer-events: none;
+    mix-blend-mode: overlay;
+  }
+  
+  @keyframes liquidWave {
+    0%, 100% {
+      transform: translateX(-100%) skewX(-12deg);
+    }
+    50% {
+      transform: translateX(100%) skewX(12deg);
+    }
+  }
+
+  /* ============================================
+     DYNAMIC LIGHT INTERACTION
+     Glass responds to environment and interaction
+     ============================================ */
+  
+  .liquid-light-source {
+    position: relative;
+  }
+  
+  /* Radial illumination on hover - simulates touch point */
+  .liquid-light-source::before {
+    content: '';
+    position: absolute;
+    inset: -3px;
+    border-radius: inherit;
+    background: radial-gradient(
+      circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+      color-mix(in srgb, var(--lg-light) 35%, transparent) 0%,
+      color-mix(in srgb, var(--lg-light) 18%, transparent) 25%,
+      transparent 65%
+    );
+    opacity: 0;
+    transition: opacity 450ms cubic-bezier(0.4, 0.0, 0.2, 1);
+    pointer-events: none;
+    z-index: 1;
+    mix-blend-mode: overlay;
+  }
+  
+  .liquid-light-source:hover::before {
+    opacity: 1;
+  }
+  
+  /* Ambient color reflection from background */
+  .liquid-ambient-glow {
+    position: relative;
+  }
+  
+  .liquid-ambient-glow::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(
+      125deg,
+      color-mix(in srgb, hsl(217 91% 60%) 6%, transparent) 0%,
+      transparent 35%,
+      transparent 65%,
+      color-mix(in srgb, hsl(280 80% 65%) 6%, transparent) 100%
+    );
+    opacity: 0.8;
+    mix-blend-mode: overlay;
+    pointer-events: none;
+  }
+
+  /* ============================================
+     MICRO-INTERACTIONS
+     Premium tactile feedback
+     ============================================ */
+  
+  .liquid-interactive {
+    position: relative;
+    cursor: pointer;
+    transition: all 320ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  /* Inner glow spreads on hover */
+  .liquid-interactive::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: radial-gradient(
+      circle at center,
+      color-mix(in srgb, hsl(217 91% 60%) 12%, transparent) 0%,
+      color-mix(in srgb, hsl(217 91% 60%) 6%, transparent) 40%,
+      transparent 80%
+    );
+    opacity: 0;
+    transition: opacity 380ms ease-out;
+    pointer-events: none;
+    mix-blend-mode: overlay;
+  }
+  
+  .liquid-interactive:hover::before {
+    opacity: 1;
+  }
+  
+  /* Gel compression on press */
+  .liquid-interactive:active {
+    transform: scale(0.985);
+    transition: transform 120ms cubic-bezier(0.4, 0.0, 0.6, 1);
+  }
+
+  /* ============================================
+     FLUID ANIMATIONS
+     ============================================ */
+  
+  @keyframes liquidFloat {
+    0%, 100% {
+      transform: translateY(0px);
+    }
+    50% {
+      transform: translateY(-14px);
+    }
+  }
+  
+  @keyframes liquidFloatSubtle {
+    0%, 100% {
+      transform: translateY(0px);
+    }
+    50% {
+      transform: translateY(-8px);
+    }
+  }
+  
+  @keyframes liquidPulse {
+    0%, 100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.82;
+      transform: scale(1.04);
+    }
+  }
+  
+  @keyframes liquidShimmer {
+    0% {
+      background-position: -250% center;
+    }
+    100% {
+      background-position: 250% center;
+    }
+  }
+  
+  @keyframes liquidExpand {
+    0% {
+      transform: scale(0.92);
+      opacity: 0;
+    }
+    100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+  
+  @keyframes liquidDrift {
+    0%, 100% {
+      transform: translate(0, 0) scale(1);
+    }
+    25% {
+      transform: translate(25px, -25px) scale(1.05);
+    }
+    50% {
+      transform: translate(-18px, 18px) scale(0.98);
+    }
+    75% {
+      transform: translate(18px, -12px) scale(1.02);
+    }
+  }
+  
+  @keyframes liquidBreathing {
+    0%, 100% {
+      transform: scale(1);
+      opacity: 0.5;
+    }
+    50% {
+      transform: scale(1.18);
+      opacity: 0.7;
+    }
+  }
+  
+  @keyframes liquidSuccessPop {
+    0% {
+      transform: scale(0.8);
+      opacity: 0;
+    }
+    50% {
+      transform: scale(1.1);
+    }
+    100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+  
+  @keyframes liquidRipple {
+    0% {
+      transform: scale(0.8);
+      opacity: 0.8;
+    }
+    100% {
+      transform: scale(2);
+      opacity: 0;
+    }
+  }
+  
+  .animate-liquid-float {
+    animation: liquidFloat 9s ease-in-out infinite;
+  }
+  
+  .animate-liquid-float-subtle {
+    animation: liquidFloatSubtle 7s ease-in-out infinite;
+  }
+  
+  .animate-liquid-pulse {
+    animation: liquidPulse 4.5s ease-in-out infinite;
+  }
+  
+  .animate-liquid-shimmer {
+    background: linear-gradient(
+      110deg,
+      transparent 0%,
+      color-mix(in srgb, var(--lg-light) 45%, transparent) 50%,
+      transparent 100%
+    );
+    background-size: 250% 100%;
+    animation: liquidShimmer 4.5s linear infinite;
+  }
+  
+  .animate-liquid-expand {
+    animation: liquidExpand 520ms cubic-bezier(0.34, 1.25, 0.64, 1) forwards;
+  }
+  
+  .animate-liquid-drift {
+    animation: liquidDrift 24s ease-in-out infinite;
+  }
+  
+  .animate-liquid-breathing {
+    animation: liquidBreathing 9s ease-in-out infinite;
+  }
+  
+  .animate-liquid-success-pop {
+    animation: liquidSuccessPop 600ms cubic-bezier(0.34, 1.45, 0.64, 1) forwards;
+  }
+  
+  .animate-liquid-ripple {
+    animation: liquidRipple 1s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  }
+
+  /* ============================================
+     TYPOGRAPHY
+     ============================================ */
+  
+  .liquid-text-gradient {
+    background: linear-gradient(
+      125deg,
+      hsl(217 91% 52%) 0%,
+      hsl(250 85% 60%) 20%,
+      hsl(280 80% 64%) 40%,
+      hsl(310 85% 60%) 60%,
+      hsl(340 85% 56%) 80%,
+      hsl(10 85% 58%) 100%
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-size: 350% 350%;
+    animation: liquidShimmer 12s ease infinite;
+    font-weight: 800;
+  }
+
+  /* ============================================
+     AMBIENT BACKGROUND ORBS
+     Create colorful layers for glass to refract
+     ============================================ */
+  
+  .liquid-orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(120px);
+    opacity: 0.65;
+    mix-blend-mode: normal;
+    pointer-events: none;
+  }
+  
+  .liquid-orb-blue {
+    background: radial-gradient(
+      circle,
+      hsl(217 91% 60% / 0.7) 0%,
+      hsl(217 91% 60% / 0.35) 50%,
+      transparent 100%
+    );
+  }
+  
+  .liquid-orb-purple {
+    background: radial-gradient(
+      circle,
+      hsl(280 80% 65% / 0.7) 0%,
+      hsl(280 80% 65% / 0.35) 50%,
+      transparent 100%
+    );
+  }
+  
+  .liquid-orb-pink {
+    background: radial-gradient(
+      circle,
+      hsl(340 85% 60% / 0.6) 0%,
+      hsl(340 85% 60% / 0.3) 50%,
+      transparent 100%
+    );
+  }
+
+  /* ============================================
+     UTILITY CLASSES
+     ============================================ */
+  
+  .rounded-liquid {
+    border-radius: var(--radius);
+  }
+  
+  .rounded-liquid-sm {
+    border-radius: calc(var(--radius) * 0.625);
+  }
+  
+  .rounded-liquid-lg {
+    border-radius: calc(var(--radius) * 1.25);
+  }
+  
+  .rounded-liquid-xl {
+    border-radius: calc(var(--radius) * 1.5);
+  }
+  
+  .rounded-liquid-2xl {
+    border-radius: calc(var(--radius) * 1.875);
+  }
+  
+  .rounded-liquid-full {
+    border-radius: 9999px;
+  }
+  
+  /* Frosted variant - less transparent */
+  .liquid-glass-frosted {
+    @apply liquid-glass;
+    background: color-mix(in srgb, var(--lg-glass-tint) 16%, transparent);
+    backdrop-filter: blur(35px) saturate(130%);
+    -webkit-backdrop-filter: blur(35px) saturate(130%);
   }
 }

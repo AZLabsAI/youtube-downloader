@@ -1,14 +1,21 @@
-FROM node:18-bullseye
+FROM node:18-bookworm
 
-# Install system dependencies (Python, pip, ffmpeg)
+# Install system dependencies (Python 3.11, pip, ffmpeg)
+# Bookworm (Debian 12) comes with Python 3.11 by default
 RUN apt-get update && apt-get install -y \
     python3 \
     python3-pip \
     ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 
-# Install yt-dlp
-RUN pip3 install yt-dlp
+# Verify Python version (should be 3.11+)
+RUN python3 --version
+
+# Upgrade pip to latest version
+RUN python3 -m pip install --upgrade pip
+
+# Install yt-dlp with latest version
+RUN pip3 install --upgrade yt-dlp
 
 # Install pnpm
 RUN npm install -g pnpm
@@ -36,3 +43,4 @@ ENV NODE_ENV=production
 
 # Start the application
 CMD ["pnpm", "start"]
+

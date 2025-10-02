@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { URLInput } from "@/components/url-input";
 import { VideoMetadata } from "@/components/video-metadata";
+import { CookieUpload } from "@/components/cookie-upload";
 
 interface VideoInfo {
   id: string;
@@ -51,6 +52,7 @@ export default function Home() {
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState(0);
   const [downloadSuccess, setDownloadSuccess] = useState(false);
+  const [cookies, setCookies] = useState<any[]>([]);
 
   const handleURLSubmit = async (url: string) => {
     setDownloadUrl(url);
@@ -65,7 +67,7 @@ export default function Home() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ url }),
+        body: JSON.stringify({ url, cookies: cookies.length > 0 ? cookies : undefined }),
       });
 
       if (!response.ok) {
@@ -131,7 +133,11 @@ export default function Home() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ url: downloadUrl, qualityId: bestQuality.id }),
+        body: JSON.stringify({ 
+          url: downloadUrl, 
+          qualityId: bestQuality.id,
+          cookies: cookies.length > 0 ? cookies : undefined
+        }),
       });
 
       if (!response.ok) {
@@ -182,7 +188,7 @@ export default function Home() {
       
       setTimeout(() => {
         document.body.removeChild(a);
-        window.URL.revokeObjectURL(url);
+      window.URL.revokeObjectURL(url);
         setDownloadSuccess(true);
         setIsDownloading(false);
         // Success state persists until user manually dismisses
@@ -320,6 +326,14 @@ export default function Home() {
               </div>
 
               <URLInput onSubmit={handleURLSubmit} />
+              
+              {/* Cookie Upload Component */}
+              <div className="mt-6">
+                <CookieUpload 
+                  onCookiesLoaded={setCookies}
+                  cookiesLoaded={cookies.length > 0}
+                />
+              </div>
             </div>
           )}
 
@@ -392,10 +406,10 @@ export default function Home() {
                   </svg>
                   <span>New Video</span>
                 </button>
-              </div>
+          </div>
 
               {/* Video Preview Card */}
-              <VideoMetadata {...videoInfo} />
+            <VideoMetadata {...videoInfo} />
               
               {/* One-Click Download Button */}
               <div className="liquid-glass-lens rounded-liquid-2xl p-8 sm:p-10 text-center liquid-ambient-glow relative">
@@ -558,15 +572,15 @@ export default function Home() {
                     <span>Download Another Video</span>
                   </span>
                 </button>
-              </div>
+          </div>
 
               {/* Helper Text */}
               <p className="text-xs text-gray-500 dark:text-gray-500 mt-6 font-medium">
                 Click above when you're ready to continue
-              </p>
-            </div>
-          )}
-        </div>
+            </p>
+          </div>
+        )}
+      </div>
 
 
         {/* Gradient definition for progress */}

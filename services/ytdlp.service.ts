@@ -1,6 +1,7 @@
 import { spawn } from 'child_process';
 import { execSync } from 'child_process';
-import { unlink } from 'fs/promises';
+import { unlink, writeFile } from 'fs/promises';
+import { randomUUID } from 'crypto';
 
 export interface VideoMetadata {
   id: string;
@@ -52,6 +53,69 @@ class YTDLPService {
   private tempFiles: Set<string> = new Set();
 
   /**
+   * Create a temporary cookie file in Netscape format
+   */
+  private async createCookieFile(cookies: YouTubeCookie[]): Promise<string> {
+    const cookieFilePath = `/tmp/yt-cookies-${randomUUID()}.txt`;
+    
+    // Netscape cookie file format header
+    let cookieContent = '# Netscape HTTP Cookie File\n';
+    cookieContent += '# This is a generated file! Do not edit.\n\n';
+    
+    // Convert cookies to Netscape format
+    // Format: domain	flag	path	secure	expiration	name	value
+    for (const cookie of cookies) {
+      const domain = cookie.domain.startsWith('.') ? cookie.domain : `.${cookie.domain}`;
+      const flag = 'TRUE'; // Domain flag
+      const path = cookie.path || '/';
+      const secure = cookie.secure ? 'TRUE' : 'FALSE';
+      const expiration = cookie.expires || Math.floor(Date.now() / 1000) + 86400; // Default 24h
+      const name = cookie.name;
+      const value = cookie.value;
+      
+      cookieContent += `${domain}\t${flag}\t${path}\t${secure}\t${expiration}\t${name}\t${value}\n`;
+    }
+    
+    await writeFile(cookieFilePath, cookieContent, 'utf-8');
+    this.tempFiles.add(cookieFilePath);
+    
+    // Schedule automatic cleanup after 2 minutes (safety measure)
+    this.scheduleFileCleanup(cookieFilePath, 120000);
+    
+    return cookieFilePath;
+  }
+
+  /**
+   * Parse cookie string from cookies.txt format
+   */
+  parseCookieString(cookieString: string): YouTubeCookie[] {
+    const cookies: YouTubeCookie[] = [];
+    const lines = cookieString.split('\n');
+    
+    for (const line of lines) {
+      // Skip comments and empty lines
+      if (line.trim().startsWith('#') || line.trim() === '') {
+        continue;
+      }
+      
+      // Netscape format: domain	flag	path	secure	expiration	name	value
+      const parts = line.split('\t');
+      if (parts.length >= 7) {
+        cookies.push({
+          domain: parts[0],
+          path: parts[2],
+          secure: parts[3] === 'TRUE',
+          expires: parseInt(parts[4], 10),
+          name: parts[5],
+          value: parts[6]
+        });
+      }
+    }
+    
+    return cookies;
+  }
+
+  /**
    * Clean up temporary files
    */
   private async cleanupTempFile(filePath: string): Promise<void> {
@@ -86,35 +150,50 @@ class YTDLPService {
   /**
    * Extract video metadata from a YouTube URL
    */
-  async getVideoMetadata(url: string): Promise<VideoMetadata> {
-    return new Promise((resolve, reject) => {
-      const args = [
-        '--dump-json',
-        '--no-playlist',
-        '--no-warnings',
-        url
-      ];
+  async getVideoMetadata(url: string, cookies?: YouTubeCookie[]): Promise<VideoMetadata> {
+    let cookieFilePath: string | null = null;
+    
+    try {
+      return await new Promise(async (resolve, reject) => {
+        const args = [
+          '--dump-json',
+          '--no-playlist',
+          '--no-warnings',
+        ];
 
-      const process = spawn(this.ytdlpPath, args);
-      let data = '';
-      let error = '';
-
-      process.stdout.on('data', (chunk) => {
-        data += chunk.toString();
-      });
-
-      process.stderr.on('data', (chunk) => {
-        error += chunk.toString();
-      });
-
-      process.on('close', (code) => {
-        if (code !== 0) {
-          reject(new Error(`yt-dlp exited with code ${code}: ${error}`));
-          return;
+        // Add cookies if provided
+        if (cookies && cookies.length > 0) {
+          cookieFilePath = await this.createCookieFile(cookies);
+          args.push('--cookies', cookieFilePath);
         }
 
-        try {
-          const metadata = JSON.parse(data);
+        args.push(url);
+
+        const process = spawn(this.ytdlpPath, args);
+        let data = '';
+        let error = '';
+
+        process.stdout.on('data', (chunk) => {
+          data += chunk.toString();
+        });
+
+        process.stderr.on('data', (chunk) => {
+          error += chunk.toString();
+        });
+
+        process.on('close', async (code) => {
+          // Clean up cookie file immediately after use
+          if (cookieFilePath) {
+            await this.cleanupTempFile(cookieFilePath);
+          }
+
+          if (code !== 0) {
+            reject(new Error(`yt-dlp exited with code ${code}: ${error}`));
+            return;
+          }
+
+          try {
+            const metadata = JSON.parse(data);
           
           // Format upload date properly
           const uploadDate = metadata.upload_date;
@@ -166,6 +245,13 @@ class YTDLPService {
         }
       });
     });
+    } catch (error) {
+      // Clean up cookie file in case of error
+      if (cookieFilePath) {
+        await this.cleanupTempFile(cookieFilePath);
+      }
+      throw error;
+    }
   }
 
   /**
@@ -486,137 +572,158 @@ class YTDLPService {
   /**
    * Download video with specific quality option
    */
-  downloadVideoWithQuality(
+  async downloadVideoWithQuality(
     url: string,
     qualityId: string,
     videoTitle?: string,
+    cookies?: YouTubeCookie[],
     onProgress?: (progress: DownloadProgress) => void
   ): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const timestamp = Date.now();
-      const sanitizedTitle = videoTitle ? this.sanitizeFilename(videoTitle) : `youtube-download-${timestamp}`;
-      
-      let args: string[] = [];
-      let outputTemplate = '';
-
-      switch (qualityId) {
-        case 'best_merged':
-          outputTemplate = `/tmp/${sanitizedTitle}.%(ext)s`;
-          args = [
-            '-f', 'bestvideo+bestaudio',
-            '--merge-output-format', 'mp4',
-            '-o', outputTemplate,
-            '--newline',
-            '--no-playlist',
-            '--no-warnings',
-            url
-          ];
-          break;
-
-        case 'combined_720p':
-          outputTemplate = `/tmp/${sanitizedTitle}.%(ext)s`;
-          args = [
-            '-f', 'best[height<=720][acodec!=none]/best[height<=480][acodec!=none]/best[acodec!=none]',
-            '-o', outputTemplate,
-            '--newline',
-            '--no-playlist',
-            '--no-warnings',
-            url
-          ];
-          break;
-
-        case 'audio_only':
-          outputTemplate = `/tmp/${sanitizedTitle}.%(ext)s`;
-          args = [
-            '-f', 'bestaudio',
-            '--extract-audio',
-            '--audio-format', 'mp3',
-            '-o', outputTemplate,
-            '--newline',
-            '--no-playlist',
-            '--no-warnings',
-            url
-          ];
-          break;
-
-        default:
-          reject(new Error('Invalid quality option'));
-          return;
-      }
-
-      console.log('Starting download with args:', args);
-      const process = spawn(this.ytdlpPath, args);
-      let downloadedFilePath = '';
-      let errorOutput = '';
-
-      process.stdout.on('data', (chunk) => {
-        const output = chunk.toString();
-        console.log('yt-dlp output:', output);
-
-        // Extract the actual file path from the output
-        const destinationMatch = output.match(/\[download\] Destination: (.+)/);
-        if (destinationMatch) {
-          downloadedFilePath = destinationMatch[1].trim();
-        }
-
-        // Parse progress for regular downloads
-        const progressMatch = output.match(/\[download\]\s+(\d+\.?\d*)%\s+of\s+~?\s*(\d+\.?\d*\w+)\s+at\s+(\d+\.?\d*\w+\/s)/);
-        if (progressMatch && onProgress) {
-          onProgress({
-            percentage: parseFloat(progressMatch[1]),
-            size: progressMatch[2],
-            speed: progressMatch[3]
-          });
-        }
-
-        // Parse progress for merge operations
-        const mergeMatch = output.match(/\[Merger\] Merging formats into "(.+)"/);
-        if (mergeMatch) {
-          downloadedFilePath = mergeMatch[1].trim();
-        }
-
-        // Parse progress for audio extraction
-        const extractMatch = output.match(/\[ExtractAudio\] Destination: (.+)/);
-        if (extractMatch) {
-          downloadedFilePath = extractMatch[1].trim();
-        }
-      });
-
-      process.stderr.on('data', (chunk) => {
-        const error = chunk.toString();
-        console.error('yt-dlp stderr:', error);
-        errorOutput += error;
-      });
-
-      process.on('close', (code) => {
-        console.log(`yt-dlp process exited with code ${code}`);
+    let cookieFilePath: string | null = null;
+    
+    try {
+      return await new Promise(async (resolve, reject) => {
+        const timestamp = Date.now();
+        const sanitizedTitle = videoTitle ? this.sanitizeFilename(videoTitle) : `youtube-download-${timestamp}`;
         
-        if (code !== 0) {
-          reject(new Error(`Download failed with code ${code}: ${errorOutput}`));
-          return;
+        let args: string[] = [];
+        let outputTemplate = '';
+
+        switch (qualityId) {
+          case 'best_merged':
+            outputTemplate = `/tmp/${sanitizedTitle}.%(ext)s`;
+            args = [
+              '-f', 'bestvideo+bestaudio',
+              '--merge-output-format', 'mp4',
+              '-o', outputTemplate,
+              '--newline',
+              '--no-playlist',
+              '--no-warnings',
+            ];
+            break;
+
+          case 'combined_720p':
+            outputTemplate = `/tmp/${sanitizedTitle}.%(ext)s`;
+            args = [
+              '-f', 'best[height<=720][acodec!=none]/best[height<=480][acodec!=none]/best[acodec!=none]',
+              '-o', outputTemplate,
+              '--newline',
+              '--no-playlist',
+              '--no-warnings',
+            ];
+            break;
+
+          case 'audio_only':
+            outputTemplate = `/tmp/${sanitizedTitle}.%(ext)s`;
+            args = [
+              '-f', 'bestaudio',
+              '--extract-audio',
+              '--audio-format', 'mp3',
+              '-o', outputTemplate,
+              '--newline',
+              '--no-playlist',
+              '--no-warnings',
+            ];
+            break;
+
+          default:
+            reject(new Error('Invalid quality option'));
+            return;
         }
 
-        if (downloadedFilePath) {
-          this.tempFiles.add(downloadedFilePath);
-          resolve(downloadedFilePath);
-        } else {
-          // Fallback: try to find the file based on the template
-          try {
-            const findResult = execSync(`find /tmp -name "${sanitizedTitle}.*" -type f`, { encoding: 'utf8' });
-            const foundFiles = findResult.trim().split('\n').filter((f: string) => f);
-            if (foundFiles.length > 0) {
-              const filePath = foundFiles[0];
-              this.tempFiles.add(filePath);
-              resolve(filePath);
-            } else {
-              reject(new Error('Downloaded file not found'));
-            }
-          } catch (findError) {
-            reject(new Error('Failed to locate downloaded file'));
-          }
+        // Add cookies if provided
+        if (cookies && cookies.length > 0) {
+          cookieFilePath = await this.createCookieFile(cookies);
+          args.push('--cookies', cookieFilePath);
         }
+
+        args.push(url);
+
+        console.log('Starting download with args:', args);
+        const process = spawn(this.ytdlpPath, args);
+        let downloadedFilePath = '';
+        let errorOutput = '';
+
+        process.stdout.on('data', (chunk) => {
+          const output = chunk.toString();
+          console.log('yt-dlp output:', output);
+
+          // Extract the actual file path from the output
+          const destinationMatch = output.match(/\[download\] Destination: (.+)/);
+          if (destinationMatch) {
+            downloadedFilePath = destinationMatch[1].trim();
+          }
+
+          // Parse progress for regular downloads
+          const progressMatch = output.match(/\[download\]\s+(\d+\.?\d*)%\s+of\s+~?\s*(\d+\.?\d*\w+)\s+at\s+(\d+\.?\d*\w+\/s)/);
+          if (progressMatch && onProgress) {
+            onProgress({
+              percentage: parseFloat(progressMatch[1]),
+              size: progressMatch[2],
+              speed: progressMatch[3]
+            });
+          }
+
+          // Parse progress for merge operations
+          const mergeMatch = output.match(/\[Merger\] Merging formats into "(.+)"/);
+          if (mergeMatch) {
+            downloadedFilePath = mergeMatch[1].trim();
+          }
+
+          // Parse progress for audio extraction
+          const extractMatch = output.match(/\[ExtractAudio\] Destination: (.+)/);
+          if (extractMatch) {
+            downloadedFilePath = extractMatch[1].trim();
+          }
+        });
+
+        process.stderr.on('data', (chunk) => {
+          const error = chunk.toString();
+          console.error('yt-dlp stderr:', error);
+          errorOutput += error;
+        });
+
+        process.on('close', async (code) => {
+          console.log(`yt-dlp process exited with code ${code}`);
+          
+          // Clean up cookie file immediately after use
+          if (cookieFilePath) {
+            await this.cleanupTempFile(cookieFilePath);
+          }
+          
+          if (code !== 0) {
+            reject(new Error(`Download failed with code ${code}: ${errorOutput}`));
+            return;
+          }
+
+          if (downloadedFilePath) {
+            this.tempFiles.add(downloadedFilePath);
+            resolve(downloadedFilePath);
+          } else {
+            // Fallback: try to find the file based on the template
+            try {
+              const findResult = execSync(`find /tmp -name "${sanitizedTitle}.*" -type f`, { encoding: 'utf8' });
+              const foundFiles = findResult.trim().split('\n').filter((f: string) => f);
+              if (foundFiles.length > 0) {
+                const filePath = foundFiles[0];
+                this.tempFiles.add(filePath);
+                resolve(filePath);
+              } else {
+                reject(new Error('Downloaded file not found'));
+              }
+            } catch (findError) {
+              reject(new Error('Failed to locate downloaded file'));
+            }
+          }
+        });
       });
-    });
+    } catch (error) {
+      // Clean up cookie file in case of error
+      if (cookieFilePath) {
+        await this.cleanupTempFile(cookieFilePath);
+      }
+      throw error;
+    }
   }
 }
 
@@ -624,6 +731,16 @@ export interface DownloadProgress {
   percentage: number;
   size: string;
   speed: string;
+}
+
+export interface YouTubeCookie {
+  name: string;
+  value: string;
+  domain: string;
+  path: string;
+  expires?: number;
+  httpOnly?: boolean;
+  secure?: boolean;
 }
 
 export const ytdlpService = new YTDLPService();

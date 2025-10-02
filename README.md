@@ -34,6 +34,29 @@ A revolutionary YouTube downloader featuring a stunning **Liquid Glass** design 
 - ✅ `https://youtu.be/VIDEO_ID`
 - ✅ URL validation and error handling
 
+### 🍪 **Cookie Authentication (Bot Detection Bypass)**
+- 🔒 **Secure Cookie Handling**: Upload YouTube cookies to bypass bot detection
+- 🛡️ **Privacy-First**: Cookies are used only for your request and deleted immediately
+- 📝 **Easy Upload**: Simple file upload interface with clear instructions
+- ✅ **Format Support**: Netscape cookie format (standard for browser extensions)
+- 🎯 **Automatic Detection**: Smart error messages guide you when cookies are needed
+- 🧹 **Auto-Cleanup**: Cookie files are deleted within seconds after use
+
+#### Why Cookies Are Needed
+YouTube sometimes blocks automated downloads to prevent bots. When you encounter this:
+1. The app will show a clear error message
+2. Upload your YouTube cookies using the "YouTube Cookies" section
+3. Your cookies authenticate your download as coming from a real user
+4. Cookies are immediately deleted after use - never stored permanently
+
+#### How to Export Cookies
+1. Install a cookie export extension:
+   - Chrome/Edge: "Get cookies.txt LOCALLY"
+   - Firefox: "cookies.txt"
+2. Visit [youtube.com](https://youtube.com) and ensure you're logged in
+3. Click the extension icon and export as "Netscape" format
+4. Upload the downloaded `.txt` file in the app
+
 ## 🛠️ Technology Stack
 
 - **Framework**: Next.js 15 (App Router) with React 19
@@ -49,6 +72,7 @@ A revolutionary YouTube downloader featuring a stunning **Liquid Glass** design 
 ### System Requirements
 - **Node.js** 18+ 
 - **pnpm** 8+ (Fast, disk space efficient package manager)
+- **Python** 3.10+ (required for yt-dlp)
 - **yt-dlp** installed globally
 - **ffmpeg** for stream merging
 
@@ -152,7 +176,17 @@ Get video metadata and available quality options.
 **Request Body:**
 ```json
 {
-  "url": "https://www.youtube.com/watch?v=VIDEO_ID"
+  "url": "https://www.youtube.com/watch?v=VIDEO_ID",
+  "cookies": [  // Optional - include when YouTube requires authentication
+    {
+      "name": "VISITOR_INFO1_LIVE",
+      "value": "...",
+      "domain": ".youtube.com",
+      "path": "/",
+      "expires": 1234567890,
+      "secure": true
+    }
+  ]
 }
 ```
 
@@ -181,6 +215,14 @@ Get video metadata and available quality options.
 }
 ```
 
+**Error Response (Bot Detection):**
+```json
+{
+  "error": "YouTube detected automated access. Please upload your YouTube cookies to continue.",
+  "requiresCookies": true
+}
+```
+
 ### POST `/api/download`
 Download video with specified quality.
 
@@ -188,11 +230,27 @@ Download video with specified quality.
 ```json
 {
   "url": "https://www.youtube.com/watch?v=VIDEO_ID",
-  "qualityId": "best_merged"
+  "qualityId": "best_merged",
+  "cookies": [  // Optional - include when YouTube requires authentication
+    {
+      "name": "VISITOR_INFO1_LIVE",
+      "value": "...",
+      "domain": ".youtube.com",
+      "path": "/",
+      "expires": 1234567890,
+      "secure": true
+    }
+  ]
 }
 ```
 
 **Response:** Binary file stream with proper headers
+
+**Security Notes:**
+- Cookies are written to temporary files with unique UUIDs
+- Cookie files are deleted immediately after use (within seconds)
+- Only YouTube/Google domain cookies are accepted
+- Cookies are never logged or stored permanently
 
 ## 🎨 Design System
 

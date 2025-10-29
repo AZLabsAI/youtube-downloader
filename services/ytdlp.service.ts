@@ -145,9 +145,9 @@ class YTDLPService {
    * Extract video metadata from a YouTube URL
    */
   async getVideoMetadata(url: string): Promise<VideoMetadata> {
-    return new Promise(async (resolve, reject) => {
-      const baseArgs = await this.getBaseArgs();
-      
+    const baseArgs = await this.getBaseArgs();
+    
+    return new Promise((resolve, reject) => {
       const args = [
         ...baseArgs,
         '--dump-json',
@@ -553,26 +553,26 @@ class YTDLPService {
     videoTitle?: string,
     onProgress?: (progress: DownloadProgress) => void
   ): Promise<string> {
-    return new Promise(async (resolve, reject) => {
-      const timestamp = Date.now();
-      const sanitizedTitle = videoTitle ? this.sanitizeFilename(videoTitle) : `youtube-download-${timestamp}`;
-      
-      const baseArgs = await this.getBaseArgs();
-      let args: string[] = [...baseArgs];
-      let outputTemplate = '';
+    const timestamp = Date.now();
+    const sanitizedTitle = videoTitle ? this.sanitizeFilename(videoTitle) : `youtube-download-${timestamp}`;
+    
+    return this.getBaseArgs().then((baseArgs) => {
+      return new Promise<string>((resolve, reject) => {
+        let args: string[] = [...baseArgs];
+        let outputTemplate = '';
 
-      switch (qualityId) {
-        case 'best_merged':
-          outputTemplate = `/tmp/${sanitizedTitle}.%(ext)s`;
-          args = [
-            ...args,
-            '-f', 'bestvideo+bestaudio',
-            '--merge-output-format', 'mp4',
-            '-o', outputTemplate,
-            '--newline',
-            '--no-playlist',
-            '--no-warnings',
-            url
+        switch (qualityId) {
+          case 'best_merged':
+            outputTemplate = `/tmp/${sanitizedTitle}.%(ext)s`;
+            args = [
+              ...args,
+              '-f', 'bestvideo+bestaudio',
+              '--merge-output-format', 'mp4',
+              '-o', outputTemplate,
+              '--newline',
+              '--no-playlist',
+              '--no-warnings',
+              url
           ];
           break;
 

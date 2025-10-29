@@ -1,6 +1,7 @@
 import { spawn } from 'child_process';
 import { execSync } from 'child_process';
-import { unlink } from 'fs/promises';
+import { unlink, writeFile } from 'fs/promises';
+import { existsSync } from 'fs';
 
 export interface VideoMetadata {
   id: string;
@@ -50,6 +51,8 @@ export interface VideoFormat {
 class YTDLPService {
   private ytdlpPath: string = 'yt-dlp';
   private tempFiles: Set<string> = new Set();
+  private cookiesFile: string = '/tmp/yt-cookies.txt';
+  private cookiesInitialized: boolean = false;
 
   /**
    * Clean up temporary files
@@ -84,11 +87,69 @@ class YTDLPService {
   }
 
   /**
+   * Initialize cookies from environment variable
+   * Cookies should be base64 encoded and stored in YTDLP_COOKIES env var
+   */
+  private async initializeCookies(): Promise<void> {
+    if (this.cookiesInitialized) {
+      return;
+    }
+
+    const cookiesEnv = process.env.YTDLP_COOKIES;
+    
+    if (!cookiesEnv) {
+      console.log('No YTDLP_COOKIES environment variable found - running without authentication');
+      this.cookiesInitialized = true;
+      return;
+    }
+
+    try {
+      // Decode base64 cookies
+      const cookiesContent = Buffer.from(cookiesEnv, 'base64').toString('utf-8');
+      
+      // Validate cookie format (should start with Netscape header or have youtube.com)
+      if (!cookiesContent.includes('youtube.com') && !cookiesContent.includes('Netscape')) {
+        console.warn('Cookie content does not appear to be valid YouTube cookies');
+      }
+      
+      // Write to temp file
+      await writeFile(this.cookiesFile, cookiesContent, 'utf-8');
+      
+      console.log('YouTube cookies initialized successfully from environment variable');
+      this.cookiesInitialized = true;
+    } catch (error) {
+      console.error('Failed to initialize cookies:', error);
+      this.cookiesInitialized = true; // Mark as initialized to avoid retrying
+    }
+  }
+
+  /**
+   * Get common yt-dlp args with cookies if available
+   */
+  private async getBaseArgs(): Promise<string[]> {
+    const args: string[] = [];
+    
+    // Initialize cookies if not already done
+    await this.initializeCookies();
+
+    // Add cookies if available
+    if (existsSync(this.cookiesFile)) {
+      args.push('--cookies', this.cookiesFile);
+      console.log('Using cookies for authentication');
+    }
+
+    return args;
+  }
+
+  /**
    * Extract video metadata from a YouTube URL
    */
   async getVideoMetadata(url: string): Promise<VideoMetadata> {
+    const baseArgs = await this.getBaseArgs();
+    
     return new Promise((resolve, reject) => {
       const args = [
+        ...baseArgs,
         '--dump-json',
         '--no-playlist',
         '--no-warnings',
@@ -492,30 +553,33 @@ class YTDLPService {
     videoTitle?: string,
     onProgress?: (progress: DownloadProgress) => void
   ): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const timestamp = Date.now();
-      const sanitizedTitle = videoTitle ? this.sanitizeFilename(videoTitle) : `youtube-download-${timestamp}`;
-      
-      let args: string[] = [];
-      let outputTemplate = '';
+    const timestamp = Date.now();
+    const sanitizedTitle = videoTitle ? this.sanitizeFilename(videoTitle) : `youtube-download-${timestamp}`;
+    
+    return this.getBaseArgs().then((baseArgs) => {
+      return new Promise<string>((resolve, reject) => {
+        let args: string[] = [...baseArgs];
+        let outputTemplate = '';
 
-      switch (qualityId) {
-        case 'best_merged':
-          outputTemplate = `/tmp/${sanitizedTitle}.%(ext)s`;
-          args = [
-            '-f', 'bestvideo+bestaudio',
-            '--merge-output-format', 'mp4',
-            '-o', outputTemplate,
-            '--newline',
-            '--no-playlist',
-            '--no-warnings',
-            url
+        switch (qualityId) {
+          case 'best_merged':
+            outputTemplate = `/tmp/${sanitizedTitle}.%(ext)s`;
+            args = [
+              ...args,
+              '-f', 'bestvideo+bestaudio',
+              '--merge-output-format', 'mp4',
+              '-o', outputTemplate,
+              '--newline',
+              '--no-playlist',
+              '--no-warnings',
+              url
           ];
           break;
 
         case 'combined_720p':
           outputTemplate = `/tmp/${sanitizedTitle}.%(ext)s`;
           args = [
+            ...args,
             '-f', 'best[height<=720][acodec!=none]/best[height<=480][acodec!=none]/best[acodec!=none]',
             '-o', outputTemplate,
             '--newline',
@@ -528,6 +592,7 @@ class YTDLPService {
         case 'audio_only':
           outputTemplate = `/tmp/${sanitizedTitle}.%(ext)s`;
           args = [
+            ...args,
             '-f', 'bestaudio',
             '--extract-audio',
             '--audio-format', 'mp3',

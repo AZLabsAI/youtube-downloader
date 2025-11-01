@@ -682,6 +682,7 @@ class YTDLPService {
         }
       });
     });
+  });
   }
 }
 

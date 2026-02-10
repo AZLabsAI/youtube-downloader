@@ -43,7 +43,7 @@ export function HeroSection({ onGetStarted }: HeroSectionProps) {
               <span className="block bg-gradient-to-r from-slate-900 via-blue-800 to-slate-700 dark:from-white dark:via-blue-200 dark:to-slate-200 bg-clip-text text-transparent leading-tight">
                 Download
               </span>
-              <span className="block bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent leading-tight">
+              <span className="block shimmer-text leading-tight">
                 YouTube Videos
               </span>
               <span className="block text-3xl md:text-4xl lg:text-5xl font-semibold text-slate-600 dark:text-slate-400 mt-4">

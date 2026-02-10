@@ -50,3 +50,5 @@ next-env.d.ts
 *.mkv
 *.ogg
 *.aac
+bin/bgutil-pot
+bin/bgutil-pot.exe

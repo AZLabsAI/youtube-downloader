@@ -1,0 +1,379 @@
+================================================================================
+YOUTUBE DOWNLOADER - POT PROVIDER QUICK REFERENCE GUIDE
+================================================================================
+
+This file contains quick commands and references for common tasks.
+For detailed information, see the corresponding .md documentation files.
+
+================================================================================
+QUICK DIAGNOSTICS
+================================================================================
+
+Check POT Provider Status:
+    curl http://127.0.0.1:4416/ping
+
+Check yt-dlp Version:
+    yt-dlp --version
+
+Verify POT Plugin is Loaded:
+    yt-dlp -v 2>&1 | grep -i "pot"
+
+Test Token Generation:
+    curl -X POST http://127.0.0.1:4416/get_pot \
+      -H "Content-Type: application/json" \
+      -d '{}'
+
+Test Video Download:
+    yt-dlp "https://www.youtube.com/watch?v=jNQXAC9IVRw"
+
+================================================================================
+INSTALLATION (Choose your OS)
+================================================================================
+
+macOS Intel:
+    cd youtube-downloader/bin
+    wget https://github.com/jim60105/bgutil-ytdlp-pot-provider-rs/releases/latest/download/bgutil-pot-macos-x86_64
+    chmod +x bgutil-pot-macos-x86_64
+    mv bgutil-pot-macos-x86_64 bgutil-pot
+
+macOS Apple Silicon:
+    cd youtube-downloader/bin
+    wget https://github.com/jim60105/bgutil-ytdlp-pot-provider-rs/releases/latest/download/bgutil-pot-macos-aarch64
+    chmod +x bgutil-pot-macos-aarch64
+    mv bgutil-pot-macos-aarch64 bgutil-pot
+
+Linux x86_64:
+    cd youtube-downloader/bin
+    wget https://github.com/jim60105/bgutil-ytdlp-pot-provider-rs/releases/latest/download/bgutil-pot-linux-x86_64
+    chmod +x bgutil-pot-linux-x86_64
+    mv bgutil-pot-linux-x86_64 bgutil-pot
+
+Install yt-dlp Plugin (all platforms):
+    mkdir -p ~/.yt-dlp-plugins
+    cd ~/.yt-dlp-plugins
+    wget https://github.com/jim60105/bgutil-ytdlp-pot-provider-rs/releases/latest/download/bgutil-ytdlp-pot-provider-rs.zip
+    unzip bgutil-ytdlp-pot-provider-rs.zip
+
+================================================================================
+STARTING POT PROVIDER
+================================================================================
+
+Start Server (standard):
+    ./bin/bgutil-pot server
+
+Start with Debug Logging:
+    RUST_LOG=debug ./bin/bgutil-pot server
+
+Start on Custom Port:
+    ./bin/bgutil-pot server --port 8080
+
+Stop Server (macOS/Linux):
+    pkill -9 bgutil-pot
+
+Stop Server (Windows):
+    taskkill /IM bgutil-pot.exe /F
+
+================================================================================
+COMMON ISSUES & QUICK FIXES
+================================================================================
+
+POT Provider Won't Start:
+    1. Check binary exists: ls -la youtube-downloader/bin/bgutil-pot
+    2. Make executable: chmod +x youtube-downloader/bin/bgutil-pot
+    3. Try with full path: ./youtube-downloader/bin/bgutil-pot --version
+
+Port 4416 Already in Use:
+    macOS/Linux: lsof -i :4416
+    Windows: netstat -ano | findstr :4416
+    Kill process: kill -9 <PID>  (or taskkill /PID <PID> /F on Windows)
+    Try different port: ./bin/bgutil-pot server --port 8080
+
+POT Plugin Not Detected:
+    1. Check installation: ls -la ~/.yt-dlp-plugins/bgutil-ytdlp-pot-provider/
+    2. Update yt-dlp: pip install --upgrade yt-dlp
+    3. Verify: yt-dlp -v 2>&1 | grep -i "pot"
+
+Downloads Fail with HTTP 403:
+    1. Clear token cache: curl -X POST http://127.0.0.1:4416/invalidate_caches
+    2. Restart POT: pkill -9 bgutil-pot
+    3. Try different client: yt-dlp --extractor-args "youtube:player_client=ios" "URL"
+    4. Wait 1-2 hours (IP rate limit)
+
+"Sign in to confirm you're not a bot" Error:
+    1. Verify POT provider running: curl http://127.0.0.1:4416/ping
+    2. Check plugin loaded: yt-dlp -v 2>&1 | grep -i "pot"
+    3. Restart POT provider: pkill -9 bgutil-pot
+    4. Update bgutil-pot: Download latest from releases
+
+================================================================================
+TESTING CHECKLIST
+================================================================================
+
+Basic Tests:
+    [ ] Binary is executable and runs: ./bin/bgutil-pot --version
+    [ ] POT provider starts: ./bin/bgutil-pot server
+    [ ] Health check responds: curl http://127.0.0.1:4416/ping
+    [ ] Token generation works: curl -X POST http://127.0.0.1:4416/get_pot -d '{}'
+    [ ] yt-dlp recognizes plugin: yt-dlp -v 2>&1 | grep "pot"
+    [ ] Download succeeds: yt-dlp "https://www.youtube.com/watch?v=jNQXAC9IVRw"
+
+Integration Tests:
+    [ ] Backend service initializes POT provider on startup
+    [ ] Health check endpoint works: curl http://localhost:3000/api/health/pot-provider
+    [ ] Download API succeeds without cookies
+    [ ] Metadata API extracts video info correctly
+    [ ] Multiple concurrent downloads work
+
+Performance Tests:
+    [ ] Token generation < 1 second
+    [ ] Download starts within 5 seconds
+    [ ] No memory leaks over 1 hour
+    [ ] Handles 10 concurrent requests
+
+================================================================================
+CONFIGURATION
+================================================================================
+
+Environment Variables:
+    RUST_LOG=debug              # Enable debug logging
+    POT_SERVER_PORT=4416        # Server port (default: 4416)
+    POT_SERVER_HOST=127.0.0.1   # Server host (default: ::)
+    TOKEN_TTL=6                 # Token cache TTL in hours
+
+yt-dlp Configuration:
+    # Use default (automatic):
+    yt-dlp "VIDEO_URL"
+
+    # Custom port:
+    yt-dlp --extractor-args "youtubepot-bgutilhttp:base_url=http://127.0.0.1:8080" "VIDEO_URL"
+
+    # Legacy mode (if needed):
+    yt-dlp --extractor-args "youtubepot-bgutilhttp:disable_innertube=1" "VIDEO_URL"
+
+    # Alternative clients:
+    yt-dlp --extractor-args "youtube:player_client=ios" "VIDEO_URL"
+    yt-dlp --extractor-args "youtube:player_client=android" "VIDEO_URL"
+    yt-dlp --extractor-args "youtube:player_client=tv_embedded" "VIDEO_URL"
+
+================================================================================
+MONITORING & HEALTH CHECKS
+================================================================================
+
+Complete Health Check Script:
+    echo "=== POT Provider Health Check ==="
+    curl -s http://127.0.0.1:4416/ping && echo "✓ POT provider running" || echo "✗ POT provider down"
+    yt-dlp --version && echo "✓ yt-dlp installed" || echo "✗ yt-dlp not found"
+    yt-dlp -v 2>&1 | grep -q "pot" && echo "✓ POT plugin loaded" || echo "✗ POT plugin not found"
+    echo "=== End Health Check ==="
+
+Check POT Provider Resources:
+    macOS/Linux: top -p $(pgrep bgutil-pot)
+    Windows: tasklist | findstr bgutil-pot
+
+Check Available Disk Space:
+    macOS/Linux: df -h
+    Windows: diskpart > list volume
+
+View Recent Logs:
+    macOS/Linux: tail -f logs/application.log
+    Windows: Get-Content logs\application.log -Tail 50 -Wait
+
+================================================================================
+TROUBLESHOOTING COMMANDS
+================================================================================
+
+Get Verbose yt-dlp Output:
+    yt-dlp -v "VIDEO_URL" 2>&1 | tee download.log
+
+Check Network Connectivity:
+    ping 8.8.8.8                    # Internet connectivity
+    curl https://www.youtube.com    # YouTube accessibility
+    ping www.youtube.com            # DNS resolution
+
+Check What's Using Port 4416:
+    macOS/Linux: lsof -i :4416
+    Windows: netstat -ano | findstr :4416
+
+Clear All Caches:
+    curl -X POST http://127.0.0.1:4416/invalidate_caches
+
+Check Cache Status:
+    curl http://127.0.0.1:4416/minter_cache
+
+List Available Formats:
+    yt-dlp -F "VIDEO_URL"
+
+Download with Specific Format:
+    yt-dlp -f 22 "VIDEO_URL"        # Download 720p
+    yt-dlp -f 18 "VIDEO_URL"        # Download 360p
+    yt-dlp -f best "VIDEO_URL"      # Download best quality
+
+Test with Different Client:
+    yt-dlp --extractor-args "youtube:player_client=ios" "VIDEO_URL"
+    yt-dlp --extractor-args "youtube:player_client=android" "VIDEO_URL"
+    yt-dlp --extractor-args "youtube:player_client=tv_embedded" "VIDEO_URL"
+
+================================================================================
+FILE LOCATIONS
+================================================================================
+
+bgutil-pot Binary:
+    youtube-downloader/bin/bgutil-pot
+
+yt-dlp Plugin:
+    ~/.yt-dlp-plugins/bgutil-ytdlp-pot-provider/
+
+Backend Service:
+    youtube-downloader/services/pot-provider.service.ts
+
+Health Check Endpoint:
+    youtube-downloader/app/api/health/pot-provider/route.ts
+
+Download API:
+    youtube-downloader/app/api/download/route.ts
+
+Metadata API:
+    youtube-downloader/app/api/metadata/route.ts
+
+Documentation:
+    youtube-downloader/documents/
+
+Logs (example locations):
+    ./logs/application.log
+    /var/log/app.log
+
+================================================================================
+DOCUMENTATION REFERENCE
+================================================================================
+
+For detailed information, refer to:
+
+POT_PROVIDER_SOLUTION.md
+    - Complete solution architecture
+    - Implementation components
+    - Technical specifications
+    - Performance expectations
+
+POT_SETUP_GUIDE.md
+    - Step-by-step installation
+    - Backend integration
+    - Testing procedures
+    - Configuration options
+
+TROUBLESHOOTING.md
+    - Detailed issue diagnosis
+    - Solution procedures
+    - Emergency recovery
+    - Health monitoring
+
+COOKIES_TO_POT_MIGRATION.md
+    - Migration planning
+    - Project timeline
+    - Code changes
+    - Testing checklist
+    - Deployment procedures
+
+README.md
+    - Documentation overview
+    - Quick start by role
+    - Common tasks
+    - Learning paths
+
+================================================================================
+USEFUL LINKS
+================================================================================
+
+bgutil-pot Releases:
+    https://github.com/jim60105/bgutil-ytdlp-pot-provider-rs/releases
+
+yt-dlp GitHub:
+    https://github.com/yt-dlp/yt-dlp
+
+yt-dlp PO Token Guide:
+    https://github.com/yt-dlp/yt-dlp/wiki/PO-Token-Guide
+
+BgUtils Documentation:
+    https://github.com/LuanRT/BgUtils
+
+================================================================================
+EMERGENCY RESET
+================================================================================
+
+Complete Reset (if something goes wrong):
+    1. Stop all processes:
+       pkill -9 bgutil-pot
+       pkill -9 yt-dlp
+
+    2. Clear caches:
+       rm -rf ~/.cache/bgutil-pot/
+       rm -rf /tmp/bgutil-pot-*
+
+    3. Reinstall plugin:
+       rm -rf ~/.yt-dlp-plugins/bgutil-ytdlp-pot-provider/
+       cd ~/.yt-dlp-plugins
+       wget https://github.com/jim60105/bgutil-ytdlp-pot-provider-rs/releases/latest/download/bgutil-ytdlp-pot-provider-rs.zip
+       unzip -o bgutil-ytdlp-pot-provider-rs.zip
+
+    4. Update yt-dlp:
+       pip install --upgrade yt-dlp
+
+    5. Restart:
+       cd youtube-downloader
+       ./bin/bgutil-pot server --port 4416
+
+    6. Test:
+       yt-dlp -v "https://www.youtube.com/watch?v=jNQXAC9IVRw"
+
+================================================================================
+PERFORMANCE TIPS
+================================================================================
+
+Optimize Token Generation:
+    - Ensure internet connection is stable
+    - Keep POT provider running continuously (not restarting)
+    - Clear caches periodically
+    - Monitor system resources
+
+Optimize Downloads:
+    - Use wired connection instead of WiFi
+    - Avoid peak hours (UTC 14:00-18:00)
+    - Start fewer concurrent downloads
+    - Use lower quality formats if network is slow
+
+Monitor Health:
+    - Check POT provider CPU: top -p $(pgrep bgutil-pot)
+    - Check memory usage: free -h
+    - Check disk space: df -h
+    - Check network latency: ping 8.8.8.8
+
+================================================================================
+SUPPORT & CONTACT
+================================================================================
+
+Report Issues:
+    GitHub: https://github.com/jim60105/bgutil-ytdlp-pot-provider-rs/issues
+
+Get Help:
+    1. Check TROUBLESHOOTING.md for your issue
+    2. Search GitHub issues for similar problems
+    3. Verify all prerequisites are met
+    4. Collect debug information
+    5. Report with full error logs
+
+Debug Information to Collect:
+    - System: uname -a
+    - bgutil-pot version: ./bin/bgutil-pot --version
+    - yt-dlp version: yt-dlp --version
+    - OS architecture: uname -m
+    - Error output: yt-dlp -v "URL" 2>&1
+    - POT logs: RUST_LOG=debug ./bin/bgutil-pot server
+
+================================================================================
+END OF QUICK REFERENCE
+================================================================================
+
+Last Updated: 2025
+Version: 1.0
+Status: Ready for Use
+
+For complete documentation, see the .md files in the documents/ folder.

@@ -10,8 +10,6 @@ interface URLInputProps {
 const YOUTUBE_URL_REGEX =
   /^(https?:\/\/)?(www\.)?(youtube\.com\/(watch\?v=|embed\/|v\/)|youtu\.be\/)[\w-]+(&[\w=]*)?$/;
 
-const SAMPLE_URL = "https://www.youtube.com/watch?v=jNQXAC9IVRw";
-
 export function URLInput({ onSubmit }: URLInputProps) {
   const [url, setUrl] = useState("");
   const [error, setError] = useState("");
@@ -43,21 +41,22 @@ export function URLInput({ onSubmit }: URLInputProps) {
           setHasAutoSubmitted(true);
           handleAutoSubmit();
         }
-      }, 500); // 500ms delay after valid URL is detected
+      }, 500);
 
       return () => clearTimeout(timer);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isValid, isLoading, hasAutoSubmitted]);
 
   const handleAutoSubmit = async () => {
     setIsLoading(true);
     setError("");
-    
+
     try {
       await onSubmit(url);
     } catch (err: any) {
       setError(err.message || "Failed to fetch video information. Please try again.");
-      setHasAutoSubmitted(false); // Allow retry
+      setHasAutoSubmitted(false);
       inputRef.current?.focus();
     } finally {
       setIsLoading(false);
@@ -84,7 +83,9 @@ export function URLInput({ onSubmit }: URLInputProps) {
     try {
       await onSubmit(url);
     } catch (err: any) {
-      setError(err.message || "Failed to fetch video information. Please try again.");
+      setError(
+        err.message || "Failed to fetch video information. Please try again.",
+      );
       inputRef.current?.focus();
     } finally {
       setIsLoading(false);
@@ -93,16 +94,6 @@ export function URLInput({ onSubmit }: URLInputProps) {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setUrl(e.target.value);
-  };
-
-  const handlePaste = async () => {
-    try {
-      const text = await navigator.clipboard.readText();
-      setUrl(text);
-      inputRef.current?.focus();
-    } catch (err) {
-      // Clipboard access denied - user will paste manually
-    }
   };
 
   return (
@@ -130,8 +121,8 @@ export function URLInput({ onSubmit }: URLInputProps) {
                   showValidation && isValid
                     ? "border-green-500/50 focus:border-green-500 focus:ring-green-500/20"
                     : showValidation && !isValid
-                    ? "border-red-500/50 focus:border-red-500 focus:ring-red-500/20"
-                    : "border-blue-500/20 focus:border-blue-500/50 focus:ring-blue-500/20"
+                      ? "border-red-500/50 focus:border-red-500 focus:ring-red-500/20"
+                      : "border-blue-500/20 focus:border-blue-500/50 focus:ring-blue-500/20"
                 }
                 ${isLoading ? "opacity-60 cursor-not-allowed" : ""}
               `}
@@ -142,14 +133,34 @@ export function URLInput({ onSubmit }: URLInputProps) {
               <div className="absolute right-5 top-1/2 -translate-y-1/2">
                 {isValid ? (
                   <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-emerald-500 rounded-full flex items-center justify-center shadow-lg animate-liquid-pulse">
-                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                    <svg
+                      className="w-5 h-5 text-white"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={3}
+                        d="M5 13l4 4L19 7"
+                      />
                     </svg>
                   </div>
                 ) : (
                   <div className="w-8 h-8 bg-gradient-to-br from-red-500 to-rose-500 rounded-full flex items-center justify-center shadow-lg">
-                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
+                    <svg
+                      className="w-5 h-5 text-white"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={3}
+                        d="M6 18L18 6M6 6l12 12"
+                      />
                     </svg>
                   </div>
                 )}
@@ -169,8 +180,18 @@ export function URLInput({ onSubmit }: URLInputProps) {
           <div className="liquid-glass rounded-liquid-lg p-4 border-2 border-red-500/20 animate-liquid-expand">
             <div className="flex items-start gap-3">
               <div className="flex-shrink-0 w-5 h-5 bg-gradient-to-br from-red-500 to-rose-500 rounded-full flex items-center justify-center">
-                <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 9v2m0 4h.01" />
+                <svg
+                  className="w-3 h-3 text-white"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2.5}
+                    d="M12 9v2m0 4h.01"
+                  />
                 </svg>
               </div>
               <p className="text-sm text-red-700 dark:text-red-400 leading-relaxed flex-1 font-medium drop-shadow-sm">
@@ -181,20 +202,34 @@ export function URLInput({ onSubmit }: URLInputProps) {
         )}
 
         {/* Success Indicator */}
-        {showValidation && isValid && !error && !isLoading && !hasAutoSubmitted && (
-          <div className="liquid-glass rounded-liquid-lg p-4 border-2 border-green-500/20 animate-liquid-expand">
-            <div className="flex items-center gap-3">
-              <div className="flex-shrink-0 w-5 h-5 bg-gradient-to-br from-green-500 to-emerald-500 rounded-full flex items-center justify-center animate-liquid-pulse">
-                <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                </svg>
+        {showValidation &&
+          isValid &&
+          !error &&
+          !isLoading &&
+          !hasAutoSubmitted && (
+            <div className="liquid-glass rounded-liquid-lg p-4 border-2 border-green-500/20 animate-liquid-expand">
+              <div className="flex items-center gap-3">
+                <div className="flex-shrink-0 w-5 h-5 bg-gradient-to-br from-green-500 to-emerald-500 rounded-full flex items-center justify-center animate-liquid-pulse">
+                  <svg
+                    className="w-3 h-3 text-white"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2.5}
+                      d="M5 13l4 4L19 7"
+                    />
+                  </svg>
+                </div>
+                <p className="text-sm text-green-700 dark:text-green-400 font-semibold drop-shadow-sm">
+                  Valid URL detected! Fetching video info...
+                </p>
               </div>
-              <p className="text-sm text-green-700 dark:text-green-400 font-semibold drop-shadow-sm">
-                Valid URL detected! Fetching video info...
-              </p>
             </div>
-          </div>
-        )}
+          )}
       </div>
 
       {/* Action Button - Optional manual trigger */}
@@ -235,15 +270,21 @@ export function URLInput({ onSubmit }: URLInputProps) {
                 </svg>
                 <span>Fetch Video Info</span>
               </>
-          )}
-        </span>
-      </button>
-    )}
+            )}
+          </span>
+        </button>
+      )}
 
-    {/* Gradient for SVG */}
+      {/* Gradient for SVG */}
       <svg className="absolute w-0 h-0">
         <defs>
-          <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+          <linearGradient
+            id="progressGradient"
+            x1="0%"
+            y1="0%"
+            x2="100%"
+            y2="100%"
+          >
             <stop offset="0%" stopColor="#3b82f6" />
             <stop offset="50%" stopColor="#8b5cf6" />
             <stop offset="100%" stopColor="#ec4899" />

@@ -5,8 +5,8 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "YouTube Downloader - Liquid Glass Design",
-  description: "Download YouTube videos with our revolutionary Liquid Glass interface. Fast, secure, and beautiful.",
+  title: "YouTube Downloader - POT Provider",
+  description: "Download YouTube videos with automatic POT authentication. Fast, secure, and reliable.",
 };
 
 export default function RootLayout({

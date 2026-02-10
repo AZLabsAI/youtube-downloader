@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 
 interface Format {
   quality: string;
@@ -24,43 +24,39 @@ interface QualitySelectorProps {
   onDownload: (formatId: string) => void;
 }
 
-export function QualitySelector({ formats, videoUrl: _videoUrl, onDownload }: QualitySelectorProps) {
-  const [selectedFormat, setSelectedFormat] = useState<string>('');
-  const [activeTab, setActiveTab] = useState<'video' | 'audio'>('video');
+export function QualitySelector({
+  formats,
+  videoUrl: _videoUrl,
+  onDownload,
+}: QualitySelectorProps) {
+  const [selectedFormat, setSelectedFormat] = useState<string>("");
+  const [activeTab, setActiveTab] = useState<"video" | "audio">("video");
   const [isDownloading, setIsDownloading] = useState(false);
-  const [downloadError, setDownloadError] = useState('');
-
-  const formatFileSize = (bytes?: number): string => {
-    if (!bytes) return 'Calculating...';
-    const mb = bytes / (1024 * 1024);
-    if (mb < 1000) {
-      return `${mb.toFixed(1)} MB`;
-    }
-    const gb = mb / 1024;
-    return `${gb.toFixed(2)} GB`;
-  };
+  const [downloadError, setDownloadError] = useState("");
 
   // Add error handling for formats array
   const safeFormats = formats || [];
 
-  const videoFormats = safeFormats.filter(f => 
-    f.hasVideo || (f.vcodec && f.vcodec !== 'none')
+  const videoFormats = safeFormats.filter(
+    (f) => f.hasVideo || (f.vcodec && f.vcodec !== "none"),
   );
-  const audioFormats = safeFormats.filter(f => 
-    f.hasAudio || (f.acodec && f.acodec !== 'none' && (!f.vcodec || f.vcodec === 'none'))
+  const audioFormats = safeFormats.filter(
+    (f) =>
+      f.hasAudio ||
+      (f.acodec && f.acodec !== "none" && (!f.vcodec || f.vcodec === "none")),
   );
 
-  const displayFormats = activeTab === 'video' ? videoFormats : audioFormats;
+  const displayFormats = activeTab === "video" ? videoFormats : audioFormats;
 
   const handleDownload = async () => {
     if (!selectedFormat) {
-      setDownloadError('Please select a format first');
+      setDownloadError("Please select a format first");
       return;
     }
 
     setIsDownloading(true);
-    setDownloadError('');
-    
+    setDownloadError("");
+
     try {
       await onDownload(selectedFormat);
     } catch (err: any) {
@@ -71,7 +67,7 @@ export function QualitySelector({ formats, videoUrl: _videoUrl, onDownload }: Qu
       } else if (err.message?.includes('private') || err.message?.includes('unavailable')) {
         setDownloadError('This video is private or unavailable for download');
       } else {
-        setDownloadError('Download failed. Please try again');
+        setDownloadError("Download failed. Please try again");
       }
     } finally {
       setIsDownloading(false);
@@ -84,23 +80,23 @@ export function QualitySelector({ formats, videoUrl: _videoUrl, onDownload }: Qu
         <CardTitle>Download Options</CardTitle>
         <div className="flex gap-2 mt-4">
           <Button
-            variant={activeTab === 'video' ? 'default' : 'outline'}
+            variant={activeTab === "video" ? "default" : "outline"}
             size="sm"
             onClick={() => {
-              setActiveTab('video');
-              setSelectedFormat('');
-              setDownloadError('');
+              setActiveTab("video");
+              setSelectedFormat("");
+              setDownloadError("");
             }}
           >
             Video ({videoFormats.length})
           </Button>
           <Button
-            variant={activeTab === 'audio' ? 'default' : 'outline'}
+            variant={activeTab === "audio" ? "default" : "outline"}
             size="sm"
             onClick={() => {
-              setActiveTab('audio');
-              setSelectedFormat('');
-              setDownloadError('');
+              setActiveTab("audio");
+              setSelectedFormat("");
+              setDownloadError("");
             }}
           >
             Audio Only ({audioFormats.length})
@@ -114,12 +110,12 @@ export function QualitySelector({ formats, videoUrl: _videoUrl, onDownload }: Qu
               key={format.format_id}
               className={`p-4 rounded-lg border cursor-pointer transition-colors ${
                 selectedFormat === format.format_id
-                  ? 'border-primary bg-primary/5'
-                  : 'border-border hover:bg-muted/50'
+                  ? "border-primary bg-primary/5"
+                  : "border-border hover:bg-muted/50"
               }`}
               onClick={() => {
                 setSelectedFormat(format.format_id);
-                setDownloadError('');
+                setDownloadError("");
               }}
             >
               <div className="flex items-center justify-between">
@@ -131,7 +127,7 @@ export function QualitySelector({ formats, videoUrl: _videoUrl, onDownload }: Qu
                     checked={selectedFormat === format.format_id}
                     onChange={() => {
                       setSelectedFormat(format.format_id);
-                      setDownloadError('');
+                      setDownloadError("");
                     }}
                     className="h-4 w-4"
                   />
@@ -177,7 +173,9 @@ export function QualitySelector({ formats, videoUrl: _videoUrl, onDownload }: Qu
             onClick={handleDownload}
             disabled={isDownloading}
           >
-            {isDownloading ? 'Downloading...' : `Download ${activeTab === 'video' ? 'Video' : 'Audio'}`}
+            {isDownloading
+              ? "Downloading..."
+              : `Download ${activeTab === "video" ? "Video" : "Audio"}`}
           </Button>
         )}
       </CardContent>

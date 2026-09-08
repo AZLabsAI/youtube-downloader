@@ -8,6 +8,12 @@ interface HeroSectionProps {
 export function HeroSection({ onGetStarted }: HeroSectionProps) {
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
+      <a
+        href="https://azlabs.ai/products/youtube-downloader"
+        className="absolute right-6 top-6 z-20 rounded-full border border-blue-200/70 bg-white/70 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[1.5px] text-blue-700 backdrop-blur-sm transition-colors hover:border-blue-500 hover:text-blue-900 dark:border-blue-800/70 dark:bg-slate-900/70 dark:text-blue-200 dark:hover:border-blue-400 dark:hover:text-white"
+      >
+        An AZ Labs product
+      </a>
       {/* Animated Background Elements */}
       <div className="absolute inset-0">
         {/* Primary gradient orbs */}
